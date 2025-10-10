@@ -61,7 +61,7 @@
                 <div class="hero-info">
                     <h1><span> Your Dream Team,</span> Delivered Remotely</h1>
                     <p>Empowering innovation, we specialize in assembling exceptional remote teams for technology companies, dedicated to crafting transformative products and services. Our expertise lies in matching your project needs with the finest talent, ensuring your vision becomes a reality.</p>
-                    <a href="#contact" class="btn btn-primary btn-lg">Match me with a Team <span class="material-symbols-outlined">arrow_forward</span></a>
+                    <a href="#contact" class="btn btn-primary btn-lg">Book a call <span class="material-symbols-outlined">arrow_forward</span></a>
                 </div>
                 <div class="hero-bg">
                     <img src="images/banners/team-dekstop.png" alt="Remote software development team collaboration" width="100%" height="auto">
@@ -305,34 +305,88 @@
         </div>
     </section>
 
-    <section class="contact text-center" id="contact">
+    <section class="contact" id="contact">
         <div class="container">
-            <div class="contact-inner">
-                <h2 class="section-title">Want to grow with Sifr?</h2>
-                <div class="contact-form">
-                    <form id="contactForm" onsubmit="handleSubmit(event)">
-                        <div class="form-field">
-                            <label for="formName" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="formName" name="name" required 
-                                aria-label="Enter your full name">
+            <div class="row align-items-center">
+                    <div class="col-lg-6">
+                        <div class="contact-content">
+                            <h2 class="section-title">Struggling to Find the Right Tech Partner for Your Projects?</h2>
+                            <p>Ready to unlock the secrets of scaling your design and development team? Don't just dream of a bigger, bolder creative force – take the first step! Schedule your free 15-minute discovery call today and let's explore how we can supercharge your team's efficiency and output. It's a quick chat, packed with potential – what are you waiting for?</p>
                         </div>
-                        <div class="form-field">
-                            <label for="formEmail" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="formEmail" name="email" required 
-                                aria-label="Enter your email address">
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="contact-form">
+                            <form id="contactForm" onsubmit="handleSubmit(event)">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-field">
+                                            <input type="text" class="form-control" id="firstName" name="firstName" placeholder="First Name *" required
+                                                aria-label="Enter your first name">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-field">
+                                            <input type="text" class="form-control" id="lastName" name="lastName" placeholder="Last Name *" required
+                                                aria-label="Enter your last name">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-field">
+                                    <input type="email" class="form-control" id="formEmail" name="email" placeholder="Email *" required
+                                        aria-label="Enter your email address">
+                                </div>
+                                <div class="form-field">
+                                    <input type="text" class="form-control" id="company" name="company" placeholder="Your company *" required
+                                        aria-label="Enter your company name">
+                                </div>
+                                <div class="form-field">
+                                    <select class="form-control" id="currentRole" name="currentRole" required
+                                        aria-label="Select your current role">
+                                        <option value="">Your current role</option>
+                                        <option value="CEO/Founder">CEO/Founder</option>
+                                        <option value="CTO">CTO</option>
+                                        <option value="Product Manager">Product Manager</option>
+                                        <option value="Engineering Manager">Engineering Manager</option>
+                                        <option value="Developer">Developer</option>
+                                        <option value="Designer">Designer</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="form-field">
+                                    <select class="form-control" id="businessCategory" name="businessCategory" required
+                                        aria-label="Select your business category">
+                                        <option value="">Business Category *</option>
+                                        <option value="SaaS">SaaS</option>
+                                        <option value="E-commerce">E-commerce</option>
+                                        <option value="Fintech">Fintech</option>
+                                        <option value="Healthcare">Healthcare</option>
+                                        <option value="EdTech">EdTech</option>
+                                        <option value="MarTech">MarTech</option>
+                                        <option value="Agency">Agency</option>
+                                        <option value="Startup">Startup</option>
+                                        <option value="Enterprise">Enterprise</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="form-field">
+                                    <select class="form-control" id="companySize" name="companySize" required
+                                        aria-label="Select your company size">
+                                        <option value="">Company Size</option>
+                                        <option value="1-10">1-10 employees</option>
+                                        <option value="11-50">11-50 employees</option>
+                                        <option value="51-200">51-200 employees</option>
+                                        <option value="201-500">201-500 employees</option>
+                                        <option value="500+">500+ employees</option>
+                                    </select>
+                                </div>
+                                <div id="formStatus" class="alert" style="display: none;"></div>
+                                <button type="submit" class="btn btn-primary btn-lg btn-submit w-100">
+                                    Book a Call
+                                </button>
+                            </form>
                         </div>
-                        <div class="form-field">
-                            <label for="formMessage" class="form-label">Message</label>
-                            <textarea class="form-control" id="formMessage" name="message" rows="3" required 
-                                aria-label="Enter your message"></textarea>
-                        </div>
-                        <div id="formStatus" class="alert" style="display: none;"></div>
-                        <button type="submit" class="btn btn-primary btn-lg btn-submit">
-                            Let's Talk
-                        </button>
-                    </form>
+                    </div>
                 </div>
-            </div>
         </div>
     </section>
 
@@ -428,6 +482,8 @@
         try {
             const formData = Object.fromEntries(new FormData(form).entries());
 
+            // Email sending code - commented out for immediate redirect
+            /*
             const response = await fetch('https://contact-form.zahid-82a.workers.dev', {
             method: 'POST',
             headers: {
@@ -441,16 +497,36 @@
             const result = await response.text();
 
             statusDiv.className = 'alert alert-success';
-            statusDiv.textContent = 'Thank you! Your message has been sent successfully.';
+            statusDiv.textContent = 'Thank you! Redirecting to schedule your call...';
             statusDiv.style.display = 'block';
-            form.reset();
+            */
+
+            // Prepare Calendly URL with form parameters
+            const calendlyParams = new URLSearchParams({
+                name: `${formData.firstName || ''} ${formData.lastName || ''}`.trim(),
+                email: formData.email || '',
+                a1: formData.company || '', // Custom field for company
+                a2: formData.currentRole || '', // Custom field for role
+                a3: formData.businessCategory || '', // Custom field for business category
+                a4: formData.companySize || '' // Custom field for company size
+            });
+
+            const calendlyUrl = `https://calendly.com/zahid-sifrventures/new-meeting?${calendlyParams.toString()}`;
+
+            // Immediate redirect to Calendly
+            window.location.href = calendlyUrl;
+
         } catch (error) {
+            // Error handling - commented out for immediate redirect
+            /*
             statusDiv.className = 'alert alert-danger';
             statusDiv.textContent = 'Sorry, there was a problem sending your message. Please try again later.';
             statusDiv.style.display = 'block';
+            */
+            console.error('Form submission error:', error);
         } finally {
             submitButton.disabled = false;
-            submitButton.innerHTML = "Let's Talk";
+            submitButton.innerHTML = "Book a Call";
         }
     }
     </script>
