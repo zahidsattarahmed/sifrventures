@@ -177,7 +177,7 @@ h1,h2,h3,h4,h5,h6{
 .tc-desciption::before{
     content: url("../images/icons/qm-1.svg");
 }
-.tc-desciption h4 {
+.tc-desciption h3 {
     font-size: 29px;
     margin-top: 8px;
 }
@@ -252,7 +252,7 @@ h1,h2,h3,h4,h5,h6{
     .testimonials-inner .testimonials-info h2 {font-size: 28px;text-align: center;padding: 0 25px;}
     .testimonials-inner .testimonials-info img{display: none;}
     .testimonials-list{display: block;width: 100%;padding-top: 14px;}
-    .tc-desciption h4{font-size: 12px;margin-top: 0px;}
+    .tc-desciption h3{font-size: 12px;margin-top: 0px;}
     .testimonial-card{padding: 30px;}
     .tc-desciption p{font-size: 10px;font-weight: 500;}
     .testimonial-card .author{font-size: 10px;margin-top: 5px;}
@@ -268,7 +268,7 @@ h1,h2,h3,h4,h5,h6{
     .testimonials-inner .testimonials-info h2 {font-size: 28px;text-align: center;padding: 0 25px;}
     .testimonials-inner .testimonials-info img{display: none;}
     .testimonials-list{display: block;width: 100%;padding-top: 14px;}
-    .tc-desciption h4{font-size: 22px;margin-top: 0px;}
+    .tc-desciption h3{font-size: 22px;margin-top: 0px;}
     .testimonial-card{padding: 30px;}
     .tc-desciption p{font-size: 15px;font-weight: 400;}
     .testimonial-card .author{font-size: 13px;margin-top: 5px;}
@@ -280,7 +280,7 @@ h1,h2,h3,h4,h5,h6{
 @media (min-width: 992px) and (max-width: 1199.98px) {
     .testimonials-list{width: calc(100% - 270px);}
     .testimonials-inner .testimonials-info{width: 260px;}
-    .tc-desciption h4 {font-size: 22px;}
+    .tc-desciption h3 {font-size: 22px;}
     .tc-desciption p{font-size: 15px;}
     .testimonial-card .author{font-size: 10px;}
     .testimonial-card .author strong {font-size: 11px;}
@@ -657,7 +657,7 @@ h1,h2,h3,h4,h5,h6{
     max-width: 360px;
     font-size: 20px;
 }
-.footer-info h4 {
+.footer-info .footer-contact-heading {
     display: block;
     color: #635BFF;
     margin-top: 42px;
@@ -719,7 +719,7 @@ h1,h2,h3,h4,h5,h6{
     .footer-inner{border-radius: 20px;padding: 50px 20px 20px 20px;}
     .footer-info img{width: 147px;margin-bottom: 9px;}
     .footer-info p {max-width: 235px;font-size: 10.2px;}
-    .footer-info h4{margin-top: 5px;font-size: 13px;}
+    .footer-info .footer-contact-heading{margin-top: 5px;font-size: 13px;}
     .footer-info a{font-size: 12.5px;}
     .footer-social{gap: 17px;position: absolute;margin-top: -43px;right: 17px;}
     .footer-social img{width: 20px;transform: none;}

@@ -17,6 +17,7 @@
     <link rel="preload" href="css/bootstrap.min.css" as="style">
     <link rel="preload" href="css/styles.css" as="style">
     <style>
+    .visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
     *,::after,::before{box-sizing:border-box}body{margin:0;font-family:'Inter',system-ui,-apple-system,sans-serif;font-size:1rem;font-weight:400;line-height:1.5;color:#212529;background-color:#fff;-webkit-text-size-adjust:100%}img{max-width:100%;height:auto;vertical-align:middle}a{text-decoration:none;color:inherit}h1,h2,h3,h4,h5,h6{color:#0a2540;font-weight:bold;margin-top:0}p{margin-top:0}.text-primary{color:#635BFF!important}
     .container{width:100%;padding-right:.75rem;padding-left:.75rem;margin-right:auto;margin-left:auto}@media(min-width:576px){.container{max-width:540px}}@media(min-width:768px){.container{max-width:720px}}@media(min-width:992px){.container{max-width:960px}}@media(min-width:1200px){.container{max-width:1140px}}@media(min-width:1400px){.container{max-width:1320px}}
     .navbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;padding:0}.navbar-brand{padding:0;margin-right:1rem;text-decoration:none;white-space:nowrap}.navbar-toggler{padding:0;border:none;background:0 0}.navbar-toggler:focus{box-shadow:none}.collapse:not(.show){display:none}.navbar-collapse{flex-basis:100%;flex-grow:1;align-items:center}.navbar-nav{display:flex;flex-direction:column;padding-left:0;margin-bottom:0;list-style:none}.nav-link{display:flex;align-items:center;height:100%;padding:.5rem 1rem;color:#000;text-decoration:none;font-size:16px;font-weight:500}.nav-link:hover{color:#635BFF}.ms-auto{margin-left:auto!important}
@@ -100,7 +101,7 @@
             <div class="nav-inner">
                 <nav class="navbar navbar-expand-lg navbar-light">
                     <a class="navbar-brand" href="#"><img src="images/logo.png" alt="Sifr Ventures" width="132" height="40"></a>
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                         <span class="menu-icon"></span>
                     </button>
                     <div class="collapse navbar-collapse" id="navbarNav">
@@ -117,6 +118,7 @@
         </div>
     </header>
     
+    <main>
     <div class="hero">
         <div class="container">
             <div class="hero-inner">
@@ -139,14 +141,15 @@
         </div>
     </div>
     
-    <section class="testimonials">
+    <section class="testimonials" aria-labelledby="testimonials-heading">
         <div class="container">
+            <h2 id="testimonials-heading" class="visually-hidden">Client Testimonials</h2>
             <div class="testimonials-inner">
                 <div class="testimonials-slider">
                     <div class="ts-slide">
                         <div class="testimonial-card tc-1">
                             <div class="tc-desciption">
-                                <h4>Thank you Sifr</h4>
+                                <h3>Thank you Sifr</h3>
                                 <p>Working with Sifr has been transformative for our business. Their developers are highly skilled and professional, delivering exceptional results consistently. The seamless integration with our team has been remarkable.</p>
                             </div>
                             <div class="author"><img src="images/testimonials/author-1.png" alt="Cheetham" width="32" height="32" loading="lazy"><strong>Cheetham</strong> <span> Founder at Headlesshost</span></div>
@@ -155,25 +158,25 @@
                     <div class="ts-slide">
                         <div class="testimonial-card tc-2">
                             <div class="tc-desciption">
-                                <h4>Absolutely Amazing</h4>
+                                <h3>Absolutely Amazing</h3>
                                 <p>Sifr has exceeded our expectations in every way. Their talented developers have seamlessly integrated with our team, bringing fresh perspectives and innovative solutions to our projects.</p>
                             </div>
                             <div class="author"><img src="images/testimonials/author-2.png" alt="Joise Perez" width="32" height="32" loading="lazy"><strong>Joise Perez</strong> <span>  Co-Founder & CTO at Humbleteam</span></div>
-                        </div>  
-                    </div>  
+                        </div>
+                    </div>
                     <div class="ts-slide">
                         <div class="testimonial-card tc-3">
                             <div class="tc-desciption">
-                                <h4>Great work done!</h4>
+                                <h3>Great work done!</h3>
                                 <p>The technical expertise and efficiency of Sifr's team has been instrumental in delivering our projects on time and within budget. They've become an essential part of our development process.</p>
                             </div>
                             <div class="author"><img src="images/testimonials/author-3.png" alt="Janeyy" width="32" height="32" loading="lazy"><strong>Janeyy</strong> <span>  CTO at LIMIA</span></div>
                         </div>
-                    </div>  
+                    </div>
                     <div class="ts-slide">
                         <div class="testimonial-card tc-4">
                             <div class="tc-desciption">
-                                <h4>You made it!</h4>
+                                <h3>You made it!</h3>
                                 <p>Partnering with Sifr has streamlined our development process significantly. Their team's dedication to quality and attention to detail has helped us achieve our project goals ahead of schedule.</p>
                             </div>
                             <div class="author"><img src="images/testimonials/author-4.png" alt="Pavel Asman" width="32" height="32" loading="lazy"><strong>Pavel Asman</strong> <span>  Founder at Dvolt</span></div>
@@ -185,28 +188,28 @@
                 <div class="testimonials-list">
                     <div class="testimonial-card tc-1">
                         <div class="tc-desciption">
-                            <h4>Thank you Sifr</h4>
+                            <h3>Thank you Sifr</h3>
                             <p>Working with Sifr has been transformative for our business. Their developers are highly skilled and professional, delivering exceptional results consistently. The seamless integration with our team and their proactive approach to problem-solving has made them an invaluable partner.</p>
                         </div>
                         <div class="author"><img src="images/testimonials/author-1.png" alt="Cheetham" width="32" height="32" loading="lazy"><strong>Cheetham</strong> <span> Founder at Headlesshost</span></div>
                     </div>
                     <div class="testimonial-card tc-2">
                         <div class="tc-desciption">
-                            <h4>Absolutely Amazing</h4>
+                            <h3>Absolutely Amazing</h3>
                             <p>Sifr has exceeded our expectations in every way. Their talented developers have seamlessly integrated with our team, bringing fresh perspectives and innovative solutions. The quality of work and their commitment to deadlines have made them an essential part of our success story.</p>
                         </div>
                         <div class="author"><img src="images/testimonials/author-2.png" alt="Joise Perez" width="32" height="32" loading="lazy"><strong>Joise Perez</strong> <span>  Co-Founder & CTO at Humbleteam</span></div>
                     </div>
                     <div class="testimonial-card tc-3">
                         <div class="tc-desciption">
-                            <h4>You made it!</h4>
+                            <h3>You made it!</h3>
                             <p>Partnering with Sifr has streamlined our development process significantly. Their team's technical expertise and dedication to quality have helped us achieve our project goals ahead of schedule.</p>
                         </div>
                         <div class="author"><img src="images/testimonials/author-3.png" alt="Janeyy" width="32" height="32" loading="lazy"><strong>Janeyy</strong> <span>  CTO at LIMIA</span></div>
                     </div>
                     <div class="testimonial-card tc-4">
                         <div class="tc-desciption">
-                            <h4>Great work done!</h4>
+                            <h3>Great work done!</h3>
                             <p>The technical expertise and efficiency of Sifr's team has been instrumental in delivering our projects on time and within budget.</p>
                         </div>
                         <div class="author"><img src="images/testimonials/author-4.png" alt="Pavel Asman" width="32" height="32" loading="lazy"><strong>Pavel Asman</strong> <span>  Founder at Dvolt</span></div>
@@ -493,6 +496,7 @@
         </div>
     </section>
 
+    </main>
     <footer class="footer">
         <div class="container">
             <div class="footer-inner">
@@ -501,7 +505,7 @@
                         <div class="footer-info">
                             <img src="images/footer-logo.png" alt="footer logo" width="238" height="72" loading="lazy">
                             <p>Empowering businesses through innovative remote tech talent solutions. We bridge the gap between exceptional developers and forward-thinking companies.</p>
-                            <h4>CONTACT US</h4>
+                            <p class="footer-contact-heading">CONTACT US</p>
                             <p>
                                 <!-- <a href="tel:41-142-215-5846">41-142-215-5846</a> -->
                                 <a href="mailto:info@sifrventures.com">info@sifrventures.com</a>
