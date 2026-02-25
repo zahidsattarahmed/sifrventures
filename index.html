@@ -11,11 +11,15 @@
     <meta property="og:image" content="images/og-image.jpg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward" />
-    <link href="css/bootstrap.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_forward"></noscript>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
     <link href="css/styles.css" rel="stylesheet">
+    <link href="css/carousel.css" rel="stylesheet">
     <link rel="icon" href="images/favicon.png" type="image/x-icon">
+    <link rel="preload" as="image" type="image/webp" href="images/banners/team-dekstop.webp" media="(min-width: 992px)">
+    <link rel="preload" as="image" type="image/webp" href="images/banners/team-mob.webp" media="(max-width: 991px)">
 
     <script type="application/ld+json">
         {
@@ -105,8 +109,14 @@
                     <a href="#contact" class="btn btn-primary btn-lg">Book a call <span class="material-symbols-outlined">arrow_forward</span></a>
                 </div>
                 <div class="hero-bg">
-                    <img src="images/banners/team-dekstop.png" alt="Remote software development team collaboration" width="100%" height="auto">
-                    <img src="images/banners/team-mob.png" alt="Remote software development team collaboration" width="100%" height="auto">
+                    <picture class="hero-desktop">
+                        <source srcset="images/banners/team-dekstop.webp" type="image/webp">
+                        <img src="images/banners/team-dekstop.png" alt="Remote software development team collaboration" width="1250" height="1044" fetchpriority="high">
+                    </picture>
+                    <picture class="hero-mobile">
+                        <source srcset="images/banners/team-mob.webp" type="image/webp">
+                        <img src="images/banners/team-mob.png" alt="Remote software development team collaboration" width="471" height="629" fetchpriority="high">
+                    </picture>
                 </div>
             </div>
         </div>
@@ -122,7 +132,7 @@
                                 <h4>Thank you Sifr</h4>
                                 <p>Working with Sifr has been transformative for our business. Their developers are highly skilled and professional, delivering exceptional results consistently. The seamless integration with our team has been remarkable.</p>
                             </div>
-                            <div class="author"><img src="images/testimonials/author-1.png" alt="Cheetham" width="32" height="32"><strong>Cheetham</strong> <span> Founder at Headlesshost</span></div>
+                            <div class="author"><img src="images/testimonials/author-1.png" alt="Cheetham" width="32" height="32" loading="lazy"><strong>Cheetham</strong> <span> Founder at Headlesshost</span></div>
                         </div>
                     </div>
                     <div class="ts-slide">
@@ -131,7 +141,7 @@
                                 <h4>Absolutely Amazing</h4>
                                 <p>Sifr has exceeded our expectations in every way. Their talented developers have seamlessly integrated with our team, bringing fresh perspectives and innovative solutions to our projects.</p>
                             </div>
-                            <div class="author"><img src="images/testimonials/author-2.png" alt="Joise Perez" width="32" height="32"><strong>Joise Perez</strong> <span>  Co-Founder & CTO at Humbleteam</span></div>
+                            <div class="author"><img src="images/testimonials/author-2.png" alt="Joise Perez" width="32" height="32" loading="lazy"><strong>Joise Perez</strong> <span>  Co-Founder & CTO at Humbleteam</span></div>
                         </div>  
                     </div>  
                     <div class="ts-slide">
@@ -140,7 +150,7 @@
                                 <h4>Great work done!</h4>
                                 <p>The technical expertise and efficiency of Sifr's team has been instrumental in delivering our projects on time and within budget. They've become an essential part of our development process.</p>
                             </div>
-                            <div class="author"><img src="images/testimonials/author-3.png" alt="Janeyy" width="32" height="32"><strong>Janeyy</strong> <span>  CTO at LIMIA</span></div>
+                            <div class="author"><img src="images/testimonials/author-3.png" alt="Janeyy" width="32" height="32" loading="lazy"><strong>Janeyy</strong> <span>  CTO at LIMIA</span></div>
                         </div>
                     </div>  
                     <div class="ts-slide">
@@ -149,7 +159,7 @@
                                 <h4>You made it!</h4>
                                 <p>Partnering with Sifr has streamlined our development process significantly. Their team's dedication to quality and attention to detail has helped us achieve our project goals ahead of schedule.</p>
                             </div>
-                            <div class="author"><img src="images/testimonials/author-4.png" alt="Pavel Asman" width="32" height="32"><strong>Pavel Asman</strong> <span>  Founder at Dvolt</span></div>
+                            <div class="author"><img src="images/testimonials/author-4.png" alt="Pavel Asman" width="32" height="32" loading="lazy"><strong>Pavel Asman</strong> <span>  Founder at Dvolt</span></div>
                         </div>
                     </div>  
                 </div>
@@ -161,33 +171,36 @@
                             <h4>Thank you Sifr</h4>
                             <p>Working with Sifr has been transformative for our business. Their developers are highly skilled and professional, delivering exceptional results consistently. The seamless integration with our team and their proactive approach to problem-solving has made them an invaluable partner.</p>
                         </div>
-                        <div class="author"><img src="images/testimonials/author-1.png" alt="Cheetham" width="32" height="32"><strong>Cheetham</strong> <span> Founder at Headlesshost</span></div>
+                        <div class="author"><img src="images/testimonials/author-1.png" alt="Cheetham" width="32" height="32" loading="lazy"><strong>Cheetham</strong> <span> Founder at Headlesshost</span></div>
                     </div>
                     <div class="testimonial-card tc-2">
                         <div class="tc-desciption">
                             <h4>Absolutely Amazing</h4>
                             <p>Sifr has exceeded our expectations in every way. Their talented developers have seamlessly integrated with our team, bringing fresh perspectives and innovative solutions. The quality of work and their commitment to deadlines have made them an essential part of our success story.</p>
                         </div>
-                        <div class="author"><img src="images/testimonials/author-2.png" alt="Joise Perez" width="32" height="32"><strong>Joise Perez</strong> <span>  Co-Founder & CTO at Humbleteam</span></div>
+                        <div class="author"><img src="images/testimonials/author-2.png" alt="Joise Perez" width="32" height="32" loading="lazy"><strong>Joise Perez</strong> <span>  Co-Founder & CTO at Humbleteam</span></div>
                     </div>
                     <div class="testimonial-card tc-3">
                         <div class="tc-desciption">
                             <h4>You made it!</h4>
                             <p>Partnering with Sifr has streamlined our development process significantly. Their team's technical expertise and dedication to quality have helped us achieve our project goals ahead of schedule.</p>
                         </div>
-                        <div class="author"><img src="images/testimonials/author-3.png" alt="Janeyy" width="32" height="32"><strong>Janeyy</strong> <span>  CTO at LIMIA</span></div>
+                        <div class="author"><img src="images/testimonials/author-3.png" alt="Janeyy" width="32" height="32" loading="lazy"><strong>Janeyy</strong> <span>  CTO at LIMIA</span></div>
                     </div>
                     <div class="testimonial-card tc-4">
                         <div class="tc-desciption">
                             <h4>Great work done!</h4>
                             <p>The technical expertise and efficiency of Sifr's team has been instrumental in delivering our projects on time and within budget.</p>
                         </div>
-                        <div class="author"><img src="images/testimonials/author-4.png" alt="Pavel Asman" width="32" height="32"><strong>Pavel Asman</strong> <span>  Founder at Dvolt</span></div>
+                        <div class="author"><img src="images/testimonials/author-4.png" alt="Pavel Asman" width="32" height="32" loading="lazy"><strong>Pavel Asman</strong> <span>  Founder at Dvolt</span></div>
                     </div>
                 </div>
                 <div class="testimonials-info">
                     <h2>What people said about <span class="text-primary">Sifr?</span></h2>
-                    <img src="images/banners/testimonials.png" alt="What people said about Sifr?" width="429" height="661">
+                    <picture>
+                        <source srcset="images/banners/testimonials.webp" type="image/webp">
+                        <img src="images/banners/testimonials.png" alt="What people said about Sifr?" width="429" height="661" loading="lazy">
+                    </picture>
                 </div>
             </div>
         </div>
@@ -198,34 +211,34 @@
             <h2 class="section-title">Platforms we use</h2>
             <div class="platforms-list">
                 <div class="pl-item">
-                    <img src="images/platforms/1.png" alt="Tech Logo 1" width="100" height="100">
+                    <img src="images/platforms/1.png" alt="Tech Logo 1" width="100" height="100" loading="lazy">
                 </div>
                 <div class="pl-item">
-                    <img src="images/platforms/2.png" alt="Tech Logo 2" width="100" height="100">
+                    <img src="images/platforms/2.png" alt="Tech Logo 2" width="100" height="100" loading="lazy">
                 </div>
                 <div class="pl-item">
-                    <img src="images/platforms/3.png" alt="Tech Logo 3" width="100" height="100">
+                    <img src="images/platforms/3.png" alt="Tech Logo 3" width="100" height="100" loading="lazy">
                 </div>
                 <div class="pl-item">
-                    <img src="images/platforms/4.png" alt="Tech Logo 4" width="100" height="100">
+                    <img src="images/platforms/4.png" alt="Tech Logo 4" width="100" height="100" loading="lazy">
                 </div>
                 <div class="pl-item">
-                    <img src="images/platforms/5.png" alt="Tech Logo 5" width="100" height="100">
+                    <img src="images/platforms/5.png" alt="Tech Logo 5" width="100" height="100" loading="lazy">
                 </div>
                 <div class="pl-item">
-                    <img src="images/platforms/6.png" alt="Tech Logo 6" width="100" height="100">
+                    <img src="images/platforms/6.png" alt="Tech Logo 6" width="100" height="100" loading="lazy">
                 </div>
                 <div class="pl-item">
-                    <img src="images/platforms/7.png" alt="Tech Logo 7" width="100" height="100">
+                    <img src="images/platforms/7.png" alt="Tech Logo 7" width="100" height="100" loading="lazy">
                 </div>
                 <div class="pl-item">
-                    <img src="images/platforms/8.png" alt="Tech Logo 8" width="100" height="100">
+                    <img src="images/platforms/8.png" alt="Tech Logo 8" width="100" height="100" loading="lazy">
                 </div>
                 <div class="pl-item">
-                    <img src="images/platforms/9.png" alt="Tech Logo 9" width="100" height="100">
+                    <img src="images/platforms/9.png" alt="Tech Logo 9" width="100" height="100" loading="lazy">
                 </div>
                 <div class="pl-item">
-                    <img src="images/platforms/10.png" alt="Tech Logo 10" width="100" height="100">
+                    <img src="images/platforms/10.png" alt="Tech Logo 10" width="100" height="100" loading="lazy">
                 </div>
             </div>
         </div>
@@ -238,42 +251,42 @@
                 <div class="row">
                     <div class="col-6 col-sm-6 col-md-6 col-lg-4">
                         <a class="service-item" href="#">
-                            <img src="images/icons/service-1.png" alt="Resource Augmentation" width="57" height="57">
+                            <img src="images/icons/service-1.png" alt="Resource Augmentation" width="57" height="57" loading="lazy">
                             <h3>Resource Augmentation </h3>
                             <p>Highly skilled resource augmentation</p>
                         </a>
                     </div>
                     <div class="col-6 col-sm-6 col-md-6 col-lg-4">
                         <a class="service-item" href="#">
-                            <img src="images/icons/service-2.png" alt="Software Development Consultancy" width="57" height="57">
+                            <img src="images/icons/service-2.png" alt="Software Development Consultancy" width="57" height="57" loading="lazy">
                             <h3>Software Development Consultancy  </h3>
                             <p>Develop state of the art applications and assistance</p>
                         </a>
                     </div>
                     <div class="col-6 col-sm-6 col-md-6 col-lg-4">
                         <a class="service-item" href="#">
-                            <img src="images/icons/service-3.png" alt="Web Applications " width="57" height="57">
+                            <img src="images/icons/service-3.png" alt="Web Applications " width="57" height="57" loading="lazy">
                             <h3>Web Applications </h3>
                             <p>Build highly interactive and scalable web applications.</p>
                         </a>
                     </div>
                     <div class="col-6 col-sm-6 col-md-6 col-lg-4">
                         <a class="service-item" href="#">
-                            <img src="images/icons/service-4.png" alt="Generative AI" width="57" height="57">
+                            <img src="images/icons/service-4.png" alt="Generative AI" width="57" height="57" loading="lazy">
                             <h3>Generative AI </h3>
                             <p>Develop conversational applications using Generative AI</p>
                         </a>
                     </div>
                     <div class="col-6 col-sm-6 col-md-6 col-lg-4">
                         <a class="service-item" href="#">
-                            <img src="images/icons/service-5.png" alt="Cloud & Devops" width="57" height="57">
+                            <img src="images/icons/service-5.png" alt="Cloud & Devops" width="57" height="57" loading="lazy">
                             <h3>Cloud & Devops </h3>
                             <p>Modernize Cloud applications, infrastructure and operations.</p>
                         </a>
                     </div>
                     <div class="col-6 col-sm-6 col-md-6 col-lg-4">
                         <a class="service-item" href="#">
-                            <img src="images/icons/service-6.png" alt="Design ,UX " width="57" height="57">
+                            <img src="images/icons/service-6.png" alt="Design ,UX " width="57" height="57" loading="lazy">
                             <h3>Design ,UX </h3>
                             <p>Design products intuitively with a simplified user experience.</p>
                         </a>
@@ -322,22 +335,22 @@
             <h2 class="section-title">Core Values</h2>
             <div class="values-list">
                 <div class="values-item vi-1">
-                    <img src="images/icons/cv-icon-1.png" alt="Innovation and Creativity" width="105" height="105">
+                    <img src="images/icons/cv-icon-1.png" alt="Innovation and Creativity" width="105" height="105" loading="lazy">
                     <h3>Innovation and Creativity</h3>
                     <p>We embrace innovation at every turn, encouraging creative solutions and pioneering technologies to meet and exceed our clients' expectations. Our team is committed to pushing boundaries and exploring new horizons in every project we undertake.</p>
                 </div>
                 <div class="values-item vi-2">
-                    <img src="images/icons/cv-icon-2.png" alt="Integrity and Transparency" width="105" height="105">
+                    <img src="images/icons/cv-icon-2.png" alt="Integrity and Transparency" width="105" height="105" loading="lazy">
                     <h3>Integrity and Transparency</h3>
                     <p>Integrity forms the foundation of all our interactions and decisions. We believe in maintaining transparency with our clients and team members alike, fostering trust and open communication. This ensures that we operate ethically and are always aligned with our clients' best interests.</p>
                 </div>
                 <div class="values-item vi-3">
-                    <img src="images/icons/cv-icon-3.png" alt="Collaboration and Partnership" width="105" height="105">
+                    <img src="images/icons/cv-icon-3.png" alt="Collaboration and Partnership" width="105" height="105" loading="lazy">
                     <h3>Collaboration and Partnership</h3>
                     <p>Collaboration is at the heart of our approach. We see ourselves as an extension of our clients' teams, working in tandem to achieve shared goals. Our emphasis on partnership goes beyond mere cooperation, striving for a deep, mutual understanding and a cohesive effort towards success.</p>
                 </div>
                 <div class="values-item vi-4">
-                    <img src="images/icons/cv-icon-4.png" alt="Excellence and Quality" width="105" height="105">
+                    <img src="images/icons/cv-icon-4.png" alt="Excellence and Quality" width="105" height="105" loading="lazy">
                     <h3>Excellence and Quality</h3>
                     <p>Our commitment to excellence is unwavering. We uphold the highest standards of quality in every aspect of our work, from the talent we recruit to the solutions we deliver. Continuous improvement is our mantra, ensuring that we not only meet but surpass client expectations with every project.
                     </p>
@@ -469,7 +482,7 @@
                 <div class="row">
                     <div class="col-lg-6">
                         <div class="footer-info">
-                            <img src="images/footer-logo.png" alt="footer logo" width="238" height="72">
+                            <img src="images/footer-logo.png" alt="footer logo" width="238" height="72" loading="lazy">
                             <p>Empowering businesses through innovative remote tech talent solutions. We bridge the gap between exceptional developers and forward-thinking companies.</p>
                             <h4>CONTACT US</h4>
                             <p>
@@ -515,91 +528,48 @@
     </footer>
     
     <script src="js/bootstrap.bundle.min.js" defer></script>
-
-    <script src="js/jquery.js"></script>
-
-    <link href="css/carousel.css" rel="stylesheet">
     <script src="js/tiny-slider.js" defer></script>
 
     <script>
-        $(document).ready(function() {
-                if ($('.testimonials-slider').length > 0) {
-                    var slider = tns({
-                        container: '.testimonials-slider',
-                        items: 1,
-                        mouseDrag: true,
-                        swipeAngle: false,
-                        speed: 300,
-                        gutter: 80,
-                        loop: true,
-                        autoplay: true,
-                        autoplayHoverPause: false,
-                        autoplayTimeout: 3500
-                    });
-                }
+    document.addEventListener('DOMContentLoaded', function() {
+        if (document.querySelector('.testimonials-slider')) {
+            tns({
+                container: '.testimonials-slider',
+                items: 1,
+                mouseDrag: true,
+                swipeAngle: false,
+                speed: 300,
+                gutter: 80,
+                loop: true,
+                autoplay: true,
+                autoplayHoverPause: false,
+                autoplayTimeout: 3500
             });
-    </script>
+        }
+    });
 
-    <script>
     async function handleSubmit(event) {
         event.preventDefault();
-
-        const form = event.target;
-        const submitButton = form.querySelector('button[type="submit"]');
-        const statusDiv = document.getElementById('formStatus');
-
+        var form = event.target;
+        var submitButton = form.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.innerHTML = 'Sending...';
-        statusDiv.style.display = 'none';
-
         try {
-            const formData = Object.fromEntries(new FormData(form).entries());
-
-            // Email sending code - commented out for immediate redirect
-            /*
-            const response = await fetch('https://contact-form.zahid-82a.workers.dev', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-            });
-
-            if (!response.ok) throw new Error('Network response was not ok');
-
-            const result = await response.text();
-
-            statusDiv.className = 'alert alert-success';
-            statusDiv.textContent = 'Thank you! Redirecting to schedule your call...';
-            statusDiv.style.display = 'block';
-            */
-
-            // Prepare Calendly URL with form parameters
-            const calendlyParams = new URLSearchParams({
-                name: `${formData.firstName || ''} ${formData.lastName || ''}`.trim(),
+            var formData = Object.fromEntries(new FormData(form).entries());
+            var calendlyParams = new URLSearchParams({
+                name: (formData.firstName || '') + ' ' + (formData.lastName || '').trim(),
                 email: formData.email || '',
-                a1: formData.company || '', // Custom field for company
-                a2: formData.currentRole || '', // Custom field for role
-                a3: formData.businessCategory || '', // Custom field for business category
-                a4: formData.companySize || '' // Custom field for company size
+                a1: formData.company || '',
+                a2: formData.currentRole || '',
+                a3: formData.businessCategory || '',
+                a4: formData.companySize || ''
             });
-
-            const calendlyUrl = `https://calendly.com/zahid-sifrventures/new-meeting?${calendlyParams.toString()}`;
-
-            // Immediate redirect to Calendly
-            window.location.href = calendlyUrl;
-
+            window.location.href = 'https://calendly.com/zahid-sifrventures/new-meeting?' + calendlyParams.toString();
         } catch (error) {
-            // Error handling - commented out for immediate redirect
-            /*
-            statusDiv.className = 'alert alert-danger';
-            statusDiv.textContent = 'Sorry, there was a problem sending your message. Please try again later.';
-            statusDiv.style.display = 'block';
-            */
             console.error('Form submission error:', error);
         } finally {
             submitButton.disabled = false;
-            submitButton.innerHTML = "Book a Call";
+            submitButton.innerHTML = 'Book a Call';
         }
     }
     </script>

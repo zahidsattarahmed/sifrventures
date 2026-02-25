@@ -94,13 +94,14 @@ h1,h2,h3,h4,h5,h6{
     .view-mob{display: block;}
     .view-desk{display: none;}
     .hero-inner {border-radius: 14px;padding: 40px 26px 30px 26px;display: block;}
-    .hero-inner .hero-bg img:first-child{display: none;}
+    .hero-inner .hero-bg .hero-desktop{display: none;}
     .hero-inner .hero-info{position: unset;text-align: center;padding-bottom: 30px;}
     .hero-inner h1{font-size: 29px;}
     .hero-info p{font-size: 12px;}
     .hero-info .btn {font-size: 15px;letter-spacing: 0;}
     .hero-info .btn span {margin-left: 20px;}
     .hero-inner .hero-bg img{max-width: 500px;}
+    .hero-inner .hero-bg .hero-mobile{display: block;}
 }
 @media (min-width: 992px) {
     header{min-height: 80px;}
@@ -109,11 +110,11 @@ h1,h2,h3,h4,h5,h6{
     header nav .btn{font-size: 20px;padding: 12px 24px;border-radius: 8px;line-height: 1.15;margin-left: 67px;}
     .view-mob{display: none;}
     .view-desk{display: block;}
-    .hero-inner .hero-bg img:last-child{display: none;}
+    .hero-inner .hero-bg .hero-mobile{display: none;}
 }
 @media (min-width: 768px) and (max-width: 991.98px) {
-    .hero-inner .hero-bg img:first-child{display: block;margin-left: auto;}
-    .hero-inner .hero-bg img:last-child{display: none;}
+    .hero-inner .hero-bg .hero-desktop{display: block;margin-left: auto;}
+    .hero-inner .hero-bg .hero-mobile{display: none;}
 }
 @media (min-width: 992px) and (max-width: 1199.98px) {
     .hero-inner .hero-bg {max-width: 500px;padding-top: 60px;}
