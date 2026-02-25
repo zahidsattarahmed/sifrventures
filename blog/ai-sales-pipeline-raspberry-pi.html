@@ -225,7 +225,19 @@
     </footer>
 
     <script src="../js/bootstrap.bundle.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.min.js" defer></script>
-    <script src="diagrams/ai-sales-pipeline-raspberry-pi.js" defer></script>
+    <script>
+    (function() {
+      var r = document.createElement("script");
+      r.src = "https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.min.js";
+      r.async = true;
+      r.onload = function() {
+        var d = document.createElement("script");
+        d.src = "diagrams/ai-sales-pipeline-raspberry-pi.js";
+        d.async = true;
+        document.body.appendChild(d);
+      };
+      document.body.appendChild(r);
+    })();
+    </script>
 </body>
 </html>

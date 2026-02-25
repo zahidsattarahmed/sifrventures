@@ -12,13 +12,22 @@
  *   Light gray: #e5e5e5
  */
 
-document.addEventListener('DOMContentLoaded', function () {
+(function init() {
   if (typeof rough === 'undefined') return;
 
-  drawAgentArchitecture();
-  drawPipelineFlow();
-  drawApprovalTiers();
-});
+  function draw() {
+    drawAgentArchitecture();
+    drawPipelineFlow();
+    drawApprovalTiers();
+  }
+
+  // Scripts load async, so DOM is almost certainly ready. Check anyway.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', draw);
+  } else {
+    draw();
+  }
+})();
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
