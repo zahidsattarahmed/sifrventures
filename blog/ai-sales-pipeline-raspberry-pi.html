@@ -36,6 +36,38 @@
       }
     }
     </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Can you run AI agents on a Raspberry Pi?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Our system runs six AI agents on a Raspberry Pi 4 with 4 GB RAM. Each agent runs as a subprocess, peaking around 200 MB of memory. A full weekly cycle completes in under 20 minutes. The Pi handles it without stress because the agents run sequentially and the architecture is deliberately lightweight: file I/O, cron scheduling, and subprocess execution. No containers, no message queues, no databases."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does it cost to run AI agents for sales automation?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A full weekly cycle costs $2-4 USD in API calls, depending on how many leads need enrichment. The CMO research step is the cheapest. SDR enrichment is the most expensive because it processes each lead individually. The Raspberry Pi hardware cost was EUR 80, and electricity is negligible. Every agent run logs its token count and cost, so you always know exactly what you&rsquo;re spending."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do you prevent AI agents from writing to the wrong files?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Write restrictions are enforced at the CLI level using --allowedTools flags, not in the system prompt. Each agent invocation explicitly enumerates which directories it can write to. If an agent attempts to write outside its permitted paths, the tool call is blocked at the permission layer before the filesystem is touched. This is architecturally stronger than prompt-level instructions because the model cannot override it."
+          }
+        }
+      ]
+    }
+    </script>
 </head>
 <body>
 
@@ -73,6 +105,8 @@
 <p>The total hardware cost was EUR 80. Electricity is rounding error.</p>
 <p>We built this because we needed to acquire new clients while running a profitable services business with no dedicated sales staff. What we ended up with taught us more about AI agent architecture than any tutorial we&rsquo;ve read.</p>
 <h2>Six Agents, One Shared Filesystem</h2>
+<div class="diagram" id="diagram-agent-architecture"></div>
+
 <p>The system has six agents: CMO, SDR, Social Media, Events Scout, CTO, and a CEO orchestrator. Each runs as a subprocess spawned by a Python cron script, built on Anthropic&rsquo;s Claude Agent SDK. Each has a defined role and a defined set of files it can read and write.</p>
 <p>The shared state is a directory of markdown files: <code>research/</code>, <code>crm/leads/</code>, <code>outreach/drafts/</code>, <code>content/</code>, <code>events/</code>, <code>reports/</code>. No message queue. No shared memory between agents. They communicate by writing files the next agent reads.</p>
 <p>The weekly rhythm is two compressed pipeline runs plus a Friday synthesis:</p>
@@ -81,6 +115,8 @@
 <li><strong>Thursday 07:00:</strong> CMO → SDR → Enrich → CTO. Same research-to-outreach chain, plus a technical blog post draft.</li>
 <li><strong>Friday 16:00:</strong> CEO synthesizes everything into a weekly brief, flags items needing partner decisions.</li>
 </ul>
+<div class="diagram" id="diagram-pipeline-flow"></div>
+
 <p>We started with agents spread across the week: CMO Monday, SDR Tuesday, enrichment Wednesday. It was a debugging convenience from early development. When we compressed everything into two sequential pipelines, leads started moving from market signal to outreach draft in hours instead of days. The only real dependency was CMO before SDR, and everything else could run the same morning. If one agent fails mid-pipeline, the rest still run. The fail-forward design means a CMO error doesn&rsquo;t block Social Media from publishing.</p>
 <p>We chose markdown files deliberately. They are human-readable, git-diffable, and debuggable without tooling. When an agent writes a lead profile, you can open it in any text editor and see exactly what it decided and why. This matters more than it sounds when something goes wrong at 03:00 on a Tuesday.</p>
 <h2>Write Restrictions Are Enforced at the CLI Level, Not the Prompt Level</h2>
@@ -104,6 +140,8 @@
 <p>For leads above the score cutoff, the SDR writes a three-email sequence to <code>outreach/drafts/</code>. Email 1 is the cold opener, tied to a specific signal (a funding announcement, a job posting, a product update). Emails 2 and 3 are follow-ups with soft value adds. The cadence and due dates are tracked inside the lead profile itself.</p>
 <p>Leads scoring 70 or above are auto-approved and sent immediately. Leads scoring 60-69 get drafts but wait for a partner to review before sending. Below 40, leads are archived automatically.</p>
 <h2>Humans Approve Everything With External Consequences</h2>
+<div class="diagram" id="diagram-approval-tiers"></div>
+
 <p>We put approval gates at every point where an error is expensive to reverse, and removed them where speed matters more.</p>
 <p>High-confidence leads (score 70+) auto-approve and auto-send. The system drafts the email, marks it approved, and sends it via SMTP, all within the same pipeline run. Partners get a Telegram notification after the fact. They can intervene, but most of the time the scoring is right and the email lands before anyone needs to check.</p>
 <p>Mid-scored leads (60-69) get drafts but no auto-approval. These sit in <code>outreach/drafts/</code> until a partner reviews them. The Telegram bot sends a daily digest: pipeline health, stale leads, follow-ups due today, new drafts pending review.</p>
@@ -132,7 +170,22 @@
 <li>Fail-forward pipeline design. If one agent fails mid-chain, the rest still run. A CMO research failure shouldn&rsquo;t block Social Media from posting. Log the error, continue the pipeline, fix it later.</li>
 <li>Cost logging per agent run from day one. You will want this data earlier than you think.</li>
 </ul>
-<hr />
+                    <div class="blog-faq">
+<h2>FAQ</h2>
+<details class="faq-item">
+<summary class="faq-question">Can you run AI agents on a Raspberry Pi?</summary>
+<div class="faq-answer"><p>Yes. Our system runs six AI agents on a Raspberry Pi 4 with 4 GB RAM. Each agent runs as a subprocess, peaking around 200 MB of memory. A full weekly cycle completes in under 20 minutes. The Pi handles it without stress because the agents run sequentially and the architecture is deliberately lightweight: file I/O, cron scheduling, and subprocess execution. No containers, no message queues, no databases.</p></div>
+</details>
+<details class="faq-item">
+<summary class="faq-question">How much does it cost to run AI agents for sales automation?</summary>
+<div class="faq-answer"><p>A full weekly cycle costs $2-4 USD in API calls, depending on how many leads need enrichment. The CMO research step is the cheapest. SDR enrichment is the most expensive because it processes each lead individually. The Raspberry Pi hardware cost was EUR 80, and electricity is negligible. Every agent run logs its token count and cost, so you always know exactly what you&rsquo;re spending.</p></div>
+</details>
+<details class="faq-item">
+<summary class="faq-question">How do you prevent AI agents from writing to the wrong files?</summary>
+<div class="faq-answer"><p>Write restrictions are enforced at the CLI level using <code>--allowedTools</code> flags, not in the system prompt. Each agent invocation explicitly enumerates which directories it can write to. If an agent attempts to write outside its permitted paths, the tool call is blocked at the permission layer before the filesystem is touched. This is architecturally stronger than prompt-level instructions because the model cannot override it.</p>
+<hr /></div>
+</details>
+</div>
                 </div>
                 <div class="blog-post-footer">
                     SifrVentures builds dedicated engineering teams for tech companies. Based in Berlin.
@@ -172,5 +225,7 @@
     </footer>
 
     <script src="../js/bootstrap.bundle.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.min.js" defer></script>
+    <script src="diagrams/ai-sales-pipeline-raspberry-pi.js" defer></script>
 </body>
 </html>
