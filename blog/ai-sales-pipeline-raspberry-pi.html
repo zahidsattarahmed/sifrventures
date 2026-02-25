@@ -69,20 +69,19 @@
                 </div>
                 <div class="blog-content">
                     <p><em>Six AI agents, a cron scheduler, and markdown files. No cloud infra, no SaaS subscriptions, no ops team.</em></p>
-<p>Our outbound sales pipeline runs autonomously, six days a week, on a Raspberry Pi 4 sitting next to our router. It discovers market intelligence, researches companies, scores leads, drafts personalized email sequences, tracks follow-up cadence, and publishes LinkedIn content on a schedule. Every morning, a Telegram message lands on our phones with a pipeline digest.</p>
+<p>Our outbound sales pipeline runs autonomously on a Raspberry Pi 4 sitting next to our router. Twice a week, a single cron job chains five agents in sequence: market research, lead generation, enrichment, event scouting, and content drafting. A company goes from market signal to scored lead to drafted outreach email in one morning. Every day, a Telegram message lands on our phones with a pipeline digest.</p>
 <p>The total hardware cost was EUR 80. Electricity is rounding error.</p>
 <p>We built this because we needed to acquire new clients while running a profitable services business with no dedicated sales staff. What we ended up with taught us more about AI agent architecture than any tutorial we&rsquo;ve read.</p>
 <h2>Six Agents, One Shared Filesystem</h2>
 <p>The system has six agents: CMO, SDR, Social Media, Events Scout, CTO, and a CEO orchestrator. Each runs as a subprocess spawned by a Python cron script, built on Anthropic&rsquo;s Claude Agent SDK. Each has a defined role and a defined set of files it can read and write.</p>
 <p>The shared state is a directory of markdown files: <code>research/</code>, <code>crm/leads/</code>, <code>outreach/drafts/</code>, <code>content/</code>, <code>events/</code>, <code>reports/</code>. No message queue. No shared memory between agents. They communicate by writing files the next agent reads.</p>
-<p>The weekly rhythm is fixed:</p>
+<p>The weekly rhythm is two compressed pipeline runs plus a Friday synthesis:</p>
 <ul>
-<li><strong>Monday:</strong> CMO researches the market, Events Scout discovers upcoming Berlin tech events</li>
-<li><strong>Tuesday:</strong> SDR converts CMO research into scored leads, Social Media drafts LinkedIn posts</li>
-<li><strong>Wednesday:</strong> SDR enriches top leads, digs for contacts and funding signals</li>
-<li><strong>Thursday:</strong> CTO drafts technical content</li>
-<li><strong>Friday:</strong> CEO synthesizes everything into a weekly brief, flags items needing partner decisions</li>
+<li><strong>Monday 07:00:</strong> CMO → SDR → Enrich → Events Scout → Social Media. One cron entry chains all five agents sequentially. A company discovered by the CMO at 07:05 has a scored lead profile, enriched contacts, and a drafted outreach email by mid-morning.</li>
+<li><strong>Thursday 07:00:</strong> CMO → SDR → Enrich → CTO. Same research-to-outreach chain, plus a technical blog post draft.</li>
+<li><strong>Friday 16:00:</strong> CEO synthesizes everything into a weekly brief, flags items needing partner decisions.</li>
 </ul>
+<p>We started with agents spread across the week: CMO Monday, SDR Tuesday, enrichment Wednesday. It was a debugging convenience from early development. When we compressed everything into two sequential pipelines, leads started moving from market signal to outreach draft in hours instead of days. The only real dependency was CMO before SDR, and everything else could run the same morning. If one agent fails mid-pipeline, the rest still run. The fail-forward design means a CMO error doesn&rsquo;t block Social Media from publishing.</p>
 <p>We chose markdown files deliberately. They are human-readable, git-diffable, and debuggable without tooling. When an agent writes a lead profile, you can open it in any text editor and see exactly what it decided and why. This matters more than it sounds when something goes wrong at 03:00 on a Tuesday.</p>
 <h2>Write Restrictions Are Enforced at the CLI Level, Not the Prompt Level</h2>
 <p>This took the most iteration to get right.</p>
@@ -98,17 +97,19 @@
 <p>If an agent attempts to write outside its permitted paths, the tool call is blocked at the permission layer before the filesystem is touched. The restriction is architectural. It cannot be overridden by clever system prompt instructions because it operates below the model layer.</p>
 <p>This changed the reliability profile significantly. Agents that can&rsquo;t corrupt each other&rsquo;s state are much safer to run unattended overnight.</p>
 <h2>Scored Leads Flow Automatically From Research to Draft Outreach</h2>
-<p>The outreach pipeline is the core business function.</p>
-<p>Step one: the CMO runs Monday and produces a <code>market-intel-*.md</code> file with funding signals, job postings, and company news for companies in our target segment. The CMO is a pure research agent. It writes one file and exits.</p>
-<p>Step two: the SDR reads the CMO output on Tuesday and creates individual lead profiles in <code>crm/leads/</code>. Each profile gets a numeric score (0-100) based on ICP fit criteria: tech stack match, company size, funding stage, growth signals, decision-maker accessibility. Leads above 60 are flagged for outreach. Leads below 40 are archived.</p>
-<p>Step three: Wednesday enrichment. For top-scored leads, the SDR agent digs deeper. LinkedIn signals, recent hires, engineering team composition, CTO identity. The score is updated. The profile gets richer. This is the most expensive agent run in tokens, but it only touches leads that have already cleared the initial threshold.</p>
-<p>Step four: for leads above the score cutoff, the SDR writes a three-email sequence to <code>outreach/drafts/</code>. Email 1 is the cold opener, tied to a specific signal (a funding announcement, a job posting, a product update). Emails 2 and 3 are follow-ups with soft value adds. The cadence and due dates are tracked inside the lead profile itself.</p>
-<p>Nothing sends automatically. Every draft waits for a human.</p>
+<p>The outreach pipeline is the core business function, and it runs end-to-end in a single morning.</p>
+<p>First, the CMO produces a <code>market-intel-*.md</code> file with funding signals, job postings, and company news for companies in our target segment. The CMO is a pure research agent. It writes one file and exits.</p>
+<p>Minutes later, in the same pipeline run, the SDR reads the CMO output and creates individual lead profiles in <code>crm/leads/</code>. Each profile gets a numeric score (0-100) based on ICP fit criteria: tech stack match, company size, funding stage, growth signals, decision-maker accessibility.</p>
+<p>The enrichment agent runs next, still in the same pipeline. For mid-scored leads (40-59), it digs deeper: LinkedIn signals, recent hires, engineering team composition, CTO identity. The score is updated. The profile gets richer. This is the most expensive step in tokens, but it only touches leads that have already cleared the initial threshold.</p>
+<p>For leads above the score cutoff, the SDR writes a three-email sequence to <code>outreach/drafts/</code>. Email 1 is the cold opener, tied to a specific signal (a funding announcement, a job posting, a product update). Emails 2 and 3 are follow-ups with soft value adds. The cadence and due dates are tracked inside the lead profile itself.</p>
+<p>Leads scoring 70 or above are auto-approved and sent immediately. Leads scoring 60-69 get drafts but wait for a partner to review before sending. Below 40, leads are archived automatically.</p>
 <h2>Humans Approve Everything With External Consequences</h2>
-<p>We put approval gates at every point where an error is expensive to reverse.</p>
-<p>Outreach drafts sit in <code>outreach/drafts/</code> until a partner reviews them. The Telegram bot sends a daily digest: pipeline health, stale leads, follow-ups due today, new drafts pending review. LinkedIn posts are staged in <code>content/drafts/</code> with an explicit <code>**Approved**</code> status field. A scheduled script publishes them at 09:00 on the right day, after a human has seen them.</p>
-<p>The CEO agent, which runs Friday, produces a weekly brief that flags decisions requiring human judgment: leads scored above 60, proposals ready for partner review, market shifts that need a strategic call. Items below the threshold don&rsquo;t surface. The brief is a decision document, not a status dump.</p>
-<p>The pattern that works: agents handle research, drafting, scoring, and scheduling. Humans handle commitments, approvals, and anything with external consequences.</p>
+<p>We put approval gates at every point where an error is expensive to reverse, and removed them where speed matters more.</p>
+<p>High-confidence leads (score 70+) auto-approve and auto-send. The system drafts the email, marks it approved, and sends it via SMTP, all within the same pipeline run. Partners get a Telegram notification after the fact. They can intervene, but most of the time the scoring is right and the email lands before anyone needs to check.</p>
+<p>Mid-scored leads (60-69) get drafts but no auto-approval. These sit in <code>outreach/drafts/</code> until a partner reviews them. The Telegram bot sends a daily digest: pipeline health, stale leads, follow-ups due today, new drafts pending review.</p>
+<p>LinkedIn posts are auto-approved and auto-published. A scheduled script posts them at 09:00 on the right day. Partners see them on LinkedIn and can delete if needed, but we haven&rsquo;t had to yet.</p>
+<p>The CEO agent, which runs Friday, produces a weekly brief that flags decisions requiring human judgment: leads scored 60-69 needing review, proposals ready for partner editing, market shifts that need a strategic call. The brief is a decision document, not a status dump.</p>
+<p>The pattern: automate high-confidence actions, gate uncertain ones. Agents handle research, drafting, scoring, scheduling, and sending. Humans handle commitments, approvals for borderline leads, and anything with client-facing consequences.</p>
 <h2>A Raspberry Pi Forces You to Build Something That Actually Works</h2>
 <p>We chose a Raspberry Pi 4 (4 GB RAM) for a specific reason: we wanted the system to run 24/7 at near-zero marginal cost, and we wanted to force ourselves to build something lightweight enough that it could.</p>
 <p>The constraint shaped the architecture. You can&rsquo;t run a bloated microservices stack on a Pi. There&rsquo;s no elastic scaling. You work with what you have: sequential subprocess execution, file I/O, and cron. These constraints pushed us toward simpler designs, which turned out to be more maintainable and easier to reason about.</p>
@@ -116,7 +117,7 @@
 <p>The broader point: if your AI automation requires Kubernetes and a managed database to run, you&rsquo;ve probably over-engineered it. Start with the minimum that works.</p>
 <h2>Every Agent Run Is Logged With Token Count and Cost</h2>
 <p>Every agent run writes a structured log entry: timestamp, agent name, input files read, output files written, Claude API tokens consumed, and approximate cost in USD.</p>
-<p>A full weekly cycle costs roughly $2-4 USD in API calls, depending on how many leads the SDR is enriching on Wednesday. We know exactly which agent is spending what. The CMO Monday run is the cheapest. SDR Wednesday enrichment is the most expensive.</p>
+<p>A full weekly cycle costs roughly $2-4 USD in API calls, depending on how many leads need enrichment. We know exactly which agent is spending what. The CMO research step is the cheapest. SDR enrichment is the most expensive.</p>
 <p>The logs are also the primary debugging surface. When an agent produces bad output, you can trace the exact files it read, see the token count, and reconstruct what context drove the decision. Structured logs from the start saved us hours of guesswork.</p>
 <h2>The Fallback Is Bash</h2>
 <p>The Python SDK orchestrator is the primary execution layer. But every agent function has a bash fallback.</p>
@@ -126,8 +127,9 @@
 <ul>
 <li>Shared filesystem state with strict per-agent write restrictions is more robust than shared memory for sequential agent pipelines. Files are observable, diffable, and debuggable.</li>
 <li>Tool restrictions enforced at the process level are architecturally stronger than system prompt instructions. The model cannot override what the permission layer blocks.</li>
-<li>Human approval gates at outreach and publishing decisions make autonomous agents safe to run unattended. Agents draft, humans commit.</li>
-<li>A fixed weekly cadence with defined agent roles is easier to operate and debug than an event-driven system. Predictability beats flexibility for automation you need to trust.</li>
+<li>Compress your pipeline schedule. We started with agents spread across five days because it was easier to debug. When we chained them into two sequential pipeline runs, lead velocity improved without changing any agent logic. The only real dependency was research before lead gen. Everything else was artificial spacing.</li>
+<li>Tiered approval gates beat blanket approval. High-confidence actions (score 70+) auto-send. Uncertain ones (60-69) wait for a human. This lets you move fast on strong signals without losing safety on borderline decisions.</li>
+<li>Fail-forward pipeline design. If one agent fails mid-chain, the rest still run. A CMO research failure shouldn&rsquo;t block Social Media from posting. Log the error, continue the pipeline, fix it later.</li>
 <li>Cost logging per agent run from day one. You will want this data earlier than you think.</li>
 </ul>
 <hr />
