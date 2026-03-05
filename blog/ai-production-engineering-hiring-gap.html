@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Berlin's AI-native companies are posting dozens of engineering roles they cannot fill. The bottleneck is not talent. It is time.">
+    <title>Your AI Hiring Problem Is Not an AI Problem | Sifr Ventures Blog</title>
+    <link rel="canonical" href="https://www.sifrventures.com/blog/ai-production-engineering-hiring-gap.html">
+    <meta property="og:title" content="Your AI Hiring Problem Is Not an AI Problem | Sifr Ventures">
+    <meta property="og:description" content="Berlin's AI-native companies are posting dozens of engineering roles they cannot fill. The bottleneck is not talent. It is time.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://www.sifrventures.com/blog/ai-production-engineering-hiring-gap.html">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap">
+    <link href="../css/bootstrap.css" rel="stylesheet">
+    <link href="../css/styles.css" rel="stylesheet">
+    <link href="../css/blog.css" rel="stylesheet">
+    <link rel="icon" href="../images/favicon.png" type="image/x-icon">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Your AI Hiring Problem Is Not an AI Problem",
+      "description": "Berlin's AI-native companies are posting dozens of engineering roles they cannot fill. The bottleneck is not talent. It is time.",
+      "image": "https://www.sifrventures.com/images/og-image.jpg",
+      "datePublished": "2026-03-05T00:00:00+01:00",
+      "author": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      }
+    }
+    </script>
+
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <div class="nav-inner">
+                <nav class="navbar navbar-expand-lg navbar-light">
+                    <a class="navbar-brand" href="../index.html"><img src="../images/logo.png" alt="Sifr Ventures" width="132" height="40"></a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="menu-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item"><a class="nav-link" href="index.html">Blog</a></li>
+                            <li class="nav-item"><a class="btn btn-primary btn-lg" href="../index.html#contact">Contact us</a></li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <section class="blog-post">
+        <div class="container">
+            <div class="blog-post-inner">
+                <a href="index.html" class="blog-back">&larr; All posts</a>
+                <div class="blog-post-header">
+                    <div class="blog-date">March 05, 2026</div>
+                    <h1>Your AI Hiring Problem Is Not an AI Problem</h1>
+                    
+                </div>
+                <div class="blog-content">
+                    <p><em>Berlin&rsquo;s AI-native companies are posting dozens of engineering roles they cannot fill. The bottleneck is not talent. It is time.</em></p>
+<p>Three Berlin AI companies we track are collectively carrying 50+ open engineering positions right now. One is a design AI platform with 160+ employees. Another is a voice AI platform nine months into a major Series A with 12+ open engineering roles. A third builds LLM tooling used by enterprise engineering teams and is profitable at 80+ employees. All three have money, product-market fit, and a roadmap that requires more engineers than they can hire.</p>
+<p>None of them have an AI talent problem. They have a capacity problem with an AI-shaped label on it.</p>
+<h2>The Local Hiring Timeline Eats the Roadmap</h2>
+<p>Filling a senior engineering role in Berlin takes 14 to 20 weeks from job post to merged PR. That includes 4-6 weeks sourcing, 3-5 interview rounds, a 3-month notice period under standard German employment contracts, and 4-6 weeks before the engineer is contributing independently.</p>
+<p>For a company under post-funding growth pressure, this arithmetic does not work. A voice AI platform shipping new enterprise integrations every sprint cannot wait five months per engineer. The product roadmap does not pause for the hiring funnel.</p>
+<p>Senior engineers in Berlin know the market. At EUR 80-100K base with equity on top, they are in a position to be selective. The interview process filters companies, not candidates.</p>
+<h2>What an AI Production Engineer Actually Is</h2>
+<p>The shortage is not in AI knowledge. It is in a specific profile that combines three things: Python and backend fundamentals, ML integration experience, and the ability to ship under production constraints.</p>
+<p>An AI researcher optimizes a model. An AI production engineer ships that model to 10,000 users. The gap between those two activities is significant.</p>
+<p>Production AI work looks like this: wrapping an LLM inference call in a reliable async queue with exponential backoff. Managing token budgets across a RAG pipeline so latency stays under 800ms for 95% of requests. Writing observability for a system that produces probabilistic outputs, where &ldquo;wrong&rdquo; is not a thrown exception but a quietly bad response. Handling an OpenAI rate limit at 03:00 without taking the product down.</p>
+<p>This is standard backend engineering applied to a probabilistic layer. Engineers who can do it have Python fluency, operational experience, and enough ML familiarity to reason about model outputs without being ML researchers. That profile exists. It is not common in Berlin&rsquo;s local hiring pool at the speed these companies need it.</p>
+<h2>The Production Gap Across the Berlin AI Cohort</h2>
+<p>The pattern repeats across the companies we track: AI-native companies open roles for &ldquo;Principal AI Engineer,&rdquo; &ldquo;ML Engineer (LLM),&rdquo; and &ldquo;Senior Python Software Engineer&rdquo; simultaneously, because they are not three different needs. They are one need fragmented into job titles that attract researchers, generalists, and the occasional right candidate.</p>
+<p>A design AI platform we follow has 27 open roles, several in engineering leadership. The AI-specific roles ask for someone who can own the inference pipeline end-to-end, not someone who designed it from scratch in a research lab.</p>
+<p>An LLM tooling company with strong ARR and 80+ employees is hiring a Forward Deployed Engineer: Python, Kubernetes, customer integration work. The role is not research. It is production operations for AI systems at customer sites, which requires engineering fundamentals more than ML theory.</p>
+<p>This is where the Berlin hiring pipeline consistently breaks. The profile these companies need is available faster outside Germany, without the constraint of a three-month notice period.</p>
+<h2>What We Have Seen Work</h2>
+<p>At our first client, we hired one engineer specifically for their stack: the framework, the database patterns, the deployment model. That engineer was in the daily standup from day one and had a PR merged inside week one. Onboarding was pre-structured before the engagement started: architecture overview, access provisioned, first ticket scoped and linked to relevant context.</p>
+<p>The engineer did not spend six weeks learning what the team was building. They spent two weeks getting oriented, then shipped. The client now runs a complete cross-functional team with no day-to-day involvement from us.</p>
+<p>Each subsequent hire followed the same pattern: matched to a specific stack need, not pulled from a general pool. Each ramp was structured, not improvised.</p>
+<h2>The Capacity Problem Has a Structural Fix</h2>
+<p>The AI production engineering shortage in Berlin is real, but it is solvable with a different sourcing geography and a structured hiring process. Pakistan&rsquo;s engineering pipeline produces Python and backend engineers at senior level. Many have ML integration experience from working on AI products in remote-first environments. The ramp timeline is two to three weeks, not five months. Engineers integrate into the client&rsquo;s workflow, attend their standups, and work in their tools.</p>
+<p>Solving the capacity constraint before the roadmap stalls determines whether your next AI feature ships this quarter. The Berlin hiring funnel answers that question in month five. A purpose-hired embedded engineer answers it in week two.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li>Berlin&rsquo;s AI-native companies are carrying 50+ collective open engineering roles with no realistic timeline to close them locally through the standard funnel.</li>
+<li>The bottleneck is not AI knowledge. It is the combination of Python backend fluency, ML integration experience, and the ability to ship fast. That profile is hireable outside Germany in 2-3 weeks.</li>
+<li>The &ldquo;AI production engineer&rdquo; is a backend engineer who can operate probabilistic systems, not a researcher who prototypes them. The job titles are often wrong; the actual need is simpler.</li>
+<li>Embedded engineers hired to spec ramp in two to three weeks. Local hires ramp in four to six months. For post-funding roadmap windows, this difference is decisive.</li>
+<li>Starting with one embedded engineer on a specific stack need reduces risk. You validate the model before committing to a larger team.</li>
+</ul>
+                    
+                </div>
+                <div class="blog-post-footer">
+                    SifrVentures builds dedicated engineering teams for tech companies. Based in Berlin.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="footer-info">
+                            <img src="../images/footer-logo.png" alt="footer logo" width="238" height="72">
+                            <p>Empowering businesses through innovative remote tech talent solutions.</p>
+                            <h4>CONTACT US</h4>
+                            <p><a href="mailto:info@sifrventures.com">info@sifrventures.com</a></p>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 ps-0">
+                        <div class="row">
+                            <div class="col-6">
+                                <ul class="footer-menu">
+                                    <li><a href="index.html">Blog</a></li>
+                                    <li><a href="../index.html#contact">Contact</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-rights">
+                    <p>Copyright &copy; 2026 <a href="../index.html">Sifr Ventures</a> All rights reserved</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/bootstrap.bundle.min.js" defer></script>
+
+</body>
+</html>
