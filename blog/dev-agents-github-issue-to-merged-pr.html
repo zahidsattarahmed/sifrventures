@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Label an issue. Walk away. Come back to a reviewed, tested, and merged pull request.">
+    <title>From GitHub Issue to Merged PR: Building an AI Coding Pipeline That Runs Itself | Sifr Ventures Blog</title>
+    <link rel="canonical" href="https://www.sifrventures.com/blog/dev-agents-github-issue-to-merged-pr.html">
+    <meta property="og:title" content="From GitHub Issue to Merged PR: Building an AI Coding Pipeline That Runs Itself | Sifr Ventures">
+    <meta property="og:description" content="Label an issue. Walk away. Come back to a reviewed, tested, and merged pull request.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://www.sifrventures.com/blog/dev-agents-github-issue-to-merged-pr.html">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap">
+    <link href="../css/bootstrap.css" rel="stylesheet">
+    <link href="../css/styles.css" rel="stylesheet">
+    <link href="../css/blog.css" rel="stylesheet">
+    <link rel="icon" href="../images/favicon.png" type="image/x-icon">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "From GitHub Issue to Merged PR: Building an AI Coding Pipeline That Runs Itself",
+      "description": "Label an issue. Walk away. Come back to a reviewed, tested, and merged pull request.",
+      "image": "https://www.sifrventures.com/images/og-image.jpg",
+      "datePublished": "2026-03-13T00:00:00+01:00",
+      "author": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      }
+    }
+    </script>
+
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <div class="nav-inner">
+                <nav class="navbar navbar-expand-lg navbar-light">
+                    <a class="navbar-brand" href="../index.html"><img src="../images/logo.png" alt="Sifr Ventures" width="132" height="40"></a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="menu-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item"><a class="nav-link" href="index.html">Blog</a></li>
+                            <li class="nav-item"><a class="btn btn-primary btn-lg" href="../index.html#contact">Contact us</a></li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <section class="blog-post">
+        <div class="container">
+            <div class="blog-post-inner">
+                <a href="index.html" class="blog-back">&larr; All posts</a>
+                <div class="blog-post-header">
+                    <div class="blog-date">March 13, 2026</div>
+                    <h1>From GitHub Issue to Merged PR: Building an AI Coding Pipeline That Runs Itself</h1>
+                    
+                </div>
+                <div class="blog-content">
+                    <p><em>Label an issue. Walk away. Come back to a reviewed, tested, and merged pull request.</em></p>
+<p>We built an event-driven coding pipeline called dev-agents. You label a GitHub issue with <code>dev-agents</code>, and the system designs the solution, writes the code, runs the tests, reviews its own work, and merges the PR. The entire thing runs on a Raspberry Pi acting as a self-hosted GitHub Actions runner.</p>
+<p>No cloud GPU. No API keys. Just the Claude Code CLI running on an 8GB ARM board under a desk.</p>
+<p>This is how it works, what broke along the way, and why the architecture ended up the way it did.</p>
+<h2>The Pipeline</h2>
+<p>A single pipeline run walks through five stages. Each stage has a specific job and a specific failure mode we designed around.</p>
+<pre class="codehilite"><code>GitHub Issue (labeled &quot;dev-agents&quot;)
+    │
+    ▼ repository_dispatch
+┌──────────────────────────────────────────────┐
+│  Self-hosted runner                          │
+│                                              │
+│  Tech Lead (sonnet, orchestrator)            │
+│  ├── DESIGN    — explore codebase, write spec│
+│  ├── IMPLEMENT — spawn Opus to write code    │
+│  ├── VERIFY    — run tests/typecheck/build   │
+│  ├── QA        — spawn Opus to write tests   │
+│  └── FINALIZE  — commit stragglers           │
+│                                              │
+│  Post-pipeline (shell, no LLM):              │
+│  ├── Rebase onto main                        │
+│  ├── Push branch + create PR                 │
+│  ├── REVIEW — sonnet posts inline comments   │
+│  ├── Auto-merge (squash)                     │
+│  └── Comment on originating issue            │
+└──────────────────────────────────────────────┘
+</code></pre>
+
+<p>The Tech Lead is a Sonnet session with 100 turns. It maintains context across all stages — it knows what it designed, what the implementer wrote, what verification found, and what QA flagged. It delegates heavy work to Opus subagents that run in isolated contexts. This is deliberate: the orchestrator keeps the big picture while workers focus on implementation details without context pollution.</p>
+<h2>Single Orchestrator, Isolated Subagents</h2>
+<p>Early prototypes used separate agent sessions for each stage. The architect would design a solution in session one. The implementer would open a new session, re-read the spec, and start coding. Context was lost at every handoff.</p>
+<p>The fix was a single orchestrator pattern. One Sonnet session runs from start to finish. When it needs code written, it spawns an Opus subagent via the Claude Code Agent tool. The subagent gets a focused prompt, writes code, commits, and exits. Control returns to the orchestrator, which still has the full conversation history.</p>
+<p>This matters because the verification stage needs to know what was designed, what was implemented, and what the test output means. A fresh session would need to re-derive all of that context from files. The orchestrator already has it.</p>
+<p>Model allocation is intentional:</p>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Model</th>
+<th>Max Turns</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tech Lead</td>
+<td>Sonnet</td>
+<td>100</td>
+<td>Orchestration, exploration, coordination</td>
+</tr>
+<tr>
+<td>Implementer</td>
+<td>Opus</td>
+<td>40</td>
+<td>Heavy code generation, complex changes</td>
+</tr>
+<tr>
+<td>QA</td>
+<td>Opus</td>
+<td>20</td>
+<td>Test writing, edge case analysis</td>
+</tr>
+<tr>
+<td>Reviewer</td>
+<td>Sonnet</td>
+<td>20</td>
+<td>Diff review, inline comments</td>
+</tr>
+<tr>
+<td>Monitor</td>
+<td>Haiku</td>
+<td>15</td>
+<td>Lightweight status checks</td>
+</tr>
+</tbody>
+</table>
+<p>Sonnet orchestrates because it is fast and cheap for tool-heavy workflows. Opus implements because it writes better code on first attempt, which matters when you are paying per turn. Haiku monitors because you do not need a frontier model to check if a process is still running.</p>
+<h2>Event-Driven Trigger Architecture</h2>
+<p>Target repos stay lightweight. Each onboarded repo gets one small workflow file that fires a <code>repository_dispatch</code> event when an issue is labeled <code>dev-agents</code>. The dispatch lands on the dev-agents repo, where the self-hosted runner picks it up.</p>
+<pre class="codehilite"><code>Target repo: &quot;Add dark mode&quot; issue labeled
+  → repository_dispatch to dev-agents repo
+    → GitHub Actions on self-hosted runner
+      → Enqueue trigger to filesystem queue
+        → Process queue (priority-sorted)
+          → Run pipeline
+</code></pre>
+
+<p>This separation matters for two reasons. First, target repos do not need Claude Code installed or any AI dependencies. The only addition is a 30-line workflow file. Second, the queue lives on the runner, so it survives workflow restarts and can batch triggers from multiple repos.</p>
+<p>Pipeline type is auto-detected from issue labels: <code>bug</code> maps to bugfix (skip design, go straight to implementation), <code>hotfix</code> maps to highest priority. Everything else is a feature with full design-first flow.</p>
+<h2>The Priority Queue</h2>
+<p>Triggers are enqueued to a persistent filesystem queue on the runner. No database, no Redis, no message broker. YAML files sorted by filename.</p>
+<pre class="codehilite"><code>~/dev-agents-queue/
+├── pending/myapp/
+│   ├── 1-20260313T100000Z-fix-auth.yaml       # hotfix
+│   ├── 2-20260313T100100Z-fix-layout.yaml     # bugfix
+│   └── 3-20260313T100200Z-add-dark-mode.yaml  # feature
+├── active/myapp/                                # currently running
+├── completed/myapp/
+├── failed/myapp/
+└── locks/myapp.lock                            # flock per project
+</code></pre>
+
+<p>The priority prefix (<code>1-</code>, <code>2-</code>, <code>3-</code>) means <code>sort</code> naturally processes hotfixes before bugfixes before features. Within the same priority, timestamps provide FIFO ordering.</p>
+<p>Concurrency rules: same project runs sequentially (one <code>flock</code> per project), different projects run in parallel (background processes). A hotfix for project A does not wait for project B&rsquo;s feature to finish.</p>
+<p>Deduplication is by task ID. If the same issue triggers twice (user removes and re-adds the label), the second enqueue is a no-op.</p>
+<p>Crash recovery: if a trigger sits in <code>active/</code> for more than four hours, <code>process-queue.sh</code> moves it back to <code>pending/</code>. Long enough to handle legitimate large features, short enough to recover from a crashed pipeline before the next cycle.</p>
+<h2>One-Command Repo Onboarding</h2>
+<p>Onboarding a new repo takes one command:</p>
+<pre class="codehilite"><code class="language-bash">./scripts/onboard-repo.sh myorg/myapp
+</code></pre>
+
+<p>This does six things:</p>
+<ol>
+<li>Shallow-clones the repo to a temp directory</li>
+<li>Auto-detects language, framework, test/build/lint commands from <code>package.json</code>, <code>Cargo.toml</code>, <code>pyproject.toml</code>, or <code>go.mod</code></li>
+<li>Creates a project config YAML in the dev-agents repo</li>
+<li>Creates a <code>dev-agents</code> label on the target repo</li>
+<li>Pushes the dispatch workflow to the target repo</li>
+<li>Prompts for a PAT secret</li>
+</ol>
+<p>Framework detection reads dependency lists and maps them to commands:</p>
+<table>
+<thead>
+<tr>
+<th>Detected</th>
+<th>Test Command</th>
+<th>Build Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>vitest in deps</td>
+<td><code>npx vitest run</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>jest in deps</td>
+<td><code>npx jest</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>next.js in deps</td>
+<td>—</td>
+<td><code>npx next build</code></td>
+</tr>
+<tr>
+<td>Cargo.toml exists</td>
+<td><code>cargo test</code></td>
+<td><code>cargo build</code></td>
+</tr>
+<tr>
+<td>pytest in deps</td>
+<td><code>pytest</code></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>The whole process is idempotent. Re-running on an already-onboarded repo skips existing steps.</p>
+<h2>Pre-Push Review, Not Post-PR</h2>
+<p>Code review happens before the branch is pushed. A separate Sonnet session reads the <code>git diff</code>, writes structured findings to a review file, and returns a verdict: APPROVE or REQUEST_CHANGES.</p>
+<p>If the verdict is REQUEST_CHANGES, the pipeline spawns an Opus fix agent to address the critical and major issues. Then verification runs again — typecheck, tests, build. Only after gates pass does the branch get pushed and the PR created.</p>
+<p>If hard gates fail after the review cycle, the PR is created as a draft with a <code>pipeline-failed</code> label. This creates a visible record of what happened without polluting the main branch.</p>
+<p>This ordering was a deliberate choice. Post-PR review creates noise: a PR exists, reviewers see it, but it might have obvious issues that a pre-merge check would catch. Pre-push review means the PR that lands in your inbox has already been verified and reviewed. The PR is a record, not a gate.</p>
+<h2>Failure Memory</h2>
+<p>Agents learn from past mistakes. Every pipeline failure is appended to a per-project log file:</p>
+<pre class="codehilite"><code class="language-yaml">---
+date: 2026-03-10T14:22:00+00:00
+task: fix-auth
+title: Fix OAuth token refresh
+type: bugfix
+exit_code: 1
+error: |
+  TypeScript error: Property 'refresh_token' does not exist on type 'Session'
+</code></pre>
+
+<p>The last 50 lines of this failure log are injected into future pipeline prompts with a header: &ldquo;These are recent pipeline failures. Learn from them — do NOT repeat the same mistakes.&rdquo;</p>
+<p>This is not fine-tuning. It is context injection. But it works. After recording a TypeScript strict-mode failure, subsequent pipelines check for strict mode before writing code. After recording a test database teardown issue, QA agents started including cleanup steps.</p>
+<p>The failure log is append-only, capped at 50 lines of context injection, and automatically pruned when tasks move to <code>completed/</code> after 30 days.</p>
+<h2>The Kill Switch</h2>
+<pre class="codehilite"><code class="language-bash">touch data/.pause    # Stop everything
+rm data/.pause       # Resume
+</code></pre>
+
+<p>Every script checks for <code>.pause</code> at the top. This is the same pattern we use in our sales pipeline — a filesystem-level circuit breaker that requires no process management.</p>
+<h2>What This Cost</h2>
+<p>The self-hosted runner is a Raspberry Pi 4 (8GB) that also runs our sales pipeline. GitHub Actions self-hosted runners are free. Claude Code runs on a Pro subscription — no API key, no per-token billing. The marginal cost of each pipeline run is effectively zero.</p>
+<p>A typical feature pipeline (design through merge) takes 15-30 minutes and uses 100-200K tokens across all agents. A bugfix pipeline skips design and finishes in 5-15 minutes.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li><strong>Single orchestrator + subagents</strong> preserves context across pipeline stages while enabling model specialization. The orchestrator coordinates; workers execute.</li>
+<li><strong>Filesystem queues work.</strong> YAML files sorted by filename give you priority queuing, crash recovery, and human inspectability with zero infrastructure.</li>
+<li><strong>Pre-push review catches more than post-PR review.</strong> If you are going to have an AI reviewer, run it before the PR exists.</li>
+<li><strong>Failure memory is cheap context injection.</strong> Append failures to a log, inject the last N lines into future prompts. Agents stop repeating the same mistakes.</li>
+<li><strong>Shell scripts over frameworks for orchestration.</strong> The entire pipeline is bash calling <code>claude -p</code>. No SDK, no dependency graph, no build step. When something breaks, you read the script.</li>
+<li><strong>Event-driven keeps target repos clean.</strong> One workflow file, one label. The complexity lives in the pipeline repo, not in every project you onboard.</li>
+</ul>
+<p>The source is at <a href="https://github.com/bing107/dev-agents">github.com/bing107/dev-agents</a>.</p>
+<hr />
+<p><em><a href="https://sifrventures.com">SifrVentures</a> builds dedicated engineering teams for tech companies. Based in Berlin. <a href="https://sifrventures.com/how-we-work">Learn how we work</a> | <a href="https://sifrventures.com/blog">Read more on our blog</a></em></p>
+                    
+                </div>
+                <div class="blog-post-footer">
+                    SifrVentures builds dedicated engineering teams for tech companies. Based in Berlin.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="footer-info">
+                            <img src="../images/footer-logo.png" alt="footer logo" width="238" height="72">
+                            <p>Empowering businesses through innovative remote tech talent solutions.</p>
+                            <h4>CONTACT US</h4>
+                            <p><a href="mailto:info@sifrventures.com">info@sifrventures.com</a></p>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 ps-0">
+                        <div class="row">
+                            <div class="col-6">
+                                <ul class="footer-menu">
+                                    <li><a href="index.html">Blog</a></li>
+                                    <li><a href="../index.html#contact">Contact</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-rights">
+                    <p>Copyright &copy; 2026 <a href="../index.html">Sifr Ventures</a> All rights reserved</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/bootstrap.bundle.min.js" defer></script>
+
+</body>
+</html>

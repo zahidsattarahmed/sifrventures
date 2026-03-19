@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Our SDR agent's system prompt went through seven iterations before it stopped guessing email addresses. Here is what that process taught us about treating promp">
+    <title>Prompt Versioning in Production: What We Learned Running LLM Agents for 3 Months | Sifr Ventures Blog</title>
+    <link rel="canonical" href="https://www.sifrventures.com/blog/prompt-versioning-production-llm-agents.html">
+    <meta property="og:title" content="Prompt Versioning in Production: What We Learned Running LLM Agents for 3 Months | Sifr Ventures">
+    <meta property="og:description" content="Our SDR agent's system prompt went through seven iterations before it stopped guessing email addresses. Here is what that process taught us about treating promp">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://www.sifrventures.com/blog/prompt-versioning-production-llm-agents.html">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap">
+    <link href="../css/bootstrap.css" rel="stylesheet">
+    <link href="../css/styles.css" rel="stylesheet">
+    <link href="../css/blog.css" rel="stylesheet">
+    <link rel="icon" href="../images/favicon.png" type="image/x-icon">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Prompt Versioning in Production: What We Learned Running LLM Agents for 3 Months",
+      "description": "Our SDR agent's system prompt went through seven iterations before it stopped guessing email addresses. Here is what that process taught us about treating promp",
+      "image": "https://www.sifrventures.com/images/og-image.jpg",
+      "datePublished": "2026-03-13T00:00:00+01:00",
+      "author": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do you test prompt changes before deploying?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "We run the agent manually with the updated prompt against the current state of the filesystem. The quality gate checks run automatically and flag any regressions. For high-risk changes (SDR scoring criteria, outreach templates), we run the agent against three to five known leads and compare output to the previous version before committing."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How often do prompts need updating?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "In the first month, we edited prompts almost daily. By month three, edits dropped to one or two per week, mostly in response to new failure modes or scope changes. The rate decreases as the prompts mature, but it never reaches zero."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do you use prompt templates or parameterized prompts?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The system prompt is static markdown. Dynamic context \u2014 the current date, the list of leads to process, the target output directory \u2014 is injected into the user prompt at invocation time by the orchestrator. This separation keeps the system prompt stable and the dynamic context explicit.\n\nSifrVentures builds dedicated engineering teams for tech companies. Based in Berlin. Learn how we work | Read more on our blog"
+          }
+        }
+      ]
+    }
+    </script>
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <div class="nav-inner">
+                <nav class="navbar navbar-expand-lg navbar-light">
+                    <a class="navbar-brand" href="../index.html"><img src="../images/logo.png" alt="Sifr Ventures" width="132" height="40"></a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="menu-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item"><a class="nav-link" href="index.html">Blog</a></li>
+                            <li class="nav-item"><a class="btn btn-primary btn-lg" href="../index.html#contact">Contact us</a></li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <section class="blog-post">
+        <div class="container">
+            <div class="blog-post-inner">
+                <a href="index.html" class="blog-back">&larr; All posts</a>
+                <div class="blog-post-header">
+                    <div class="blog-date">March 13, 2026</div>
+                    <h1>Prompt Versioning in Production: What We Learned Running LLM Agents for 3 Months</h1>
+                    
+                </div>
+                <div class="blog-content">
+                    <p><em>Our SDR agent&rsquo;s system prompt went through seven iterations before it stopped guessing email addresses. Here is what that process taught us about treating prompts as production code.</em></p>
+<p>We run six AI agents in production, daily, on an automated schedule. Each agent has a system prompt stored as a markdown file in a git repository. Over three months, those prompts have accumulated more commits than most of our Python scripts. The prompts are the most frequently edited files in the codebase.</p>
+<p>This was not what we expected. We expected to write a prompt, tune it for a week, and leave it alone. What actually happened is that prompts behave like code: they have bugs, they need tests, they regress when you change them, and they require review before deploying to production. The tooling and practices around software engineering apply directly.</p>
+<p>Here is what we learned.</p>
+<h2>Prompts Are Markdown Files in Git</h2>
+<p>Each agent&rsquo;s system prompt lives in <code>.claude/agents/{agent-name}.md</code>. The CMO agent has <code>cmo.md</code>. The SDR has <code>sdr.md</code>. The CEO orchestrator has instructions in the project&rsquo;s <code>CLAUDE.md</code>.</p>
+<p>These are not hidden inside a Python string or a JSON config. They are standalone markdown files, version-controlled like everything else in the repository. A <code>git log --follow .claude/agents/sdr.md</code> shows every change to the SDR&rsquo;s behavior, when it happened, and (via the commit message) why.</p>
+<p>This is the first and most important decision: prompts are files. They live in version control. They have history.</p>
+<p>The alternative — prompts embedded in application code, stored in a database, or managed through a UI — makes it harder to review changes, harder to correlate behavior shifts with prompt edits, and harder to roll back when something breaks. We tried embedding prompts in the orchestrator script during the first week. Within three days we had lost track of which version was running. Moving them to standalone files with git history solved this immediately.</p>
+<h2>The SDR Agent: A Case Study in Prompt Iteration</h2>
+<p>The SDR agent generates lead profiles and drafts outreach emails. Its prompt has been edited more than any other file in the repository. Here is a compressed timeline of why.</p>
+<p><strong>Version 1:</strong> The initial prompt said &ldquo;research the company and create a lead profile with scoring.&rdquo; The agent produced profiles, but the scoring was inconsistent. Two companies with similar characteristics would get scores 20 points apart. The scores had no justification.</p>
+<p><strong>Version 2:</strong> We added explicit scoring dimensions — Budget, Authority, Need, Timeline, Fit — with point ranges for each. The agent now had a rubric. Scores became consistent. But the agent started hallucinating company details to fill scoring fields it could not verify.</p>
+<p><strong>Version 3:</strong> We added &ldquo;if you cannot verify a field, leave it blank and note the gap.&rdquo; Hallucinations dropped. But the agent started guessing email addresses using pattern inference (firstname.lastname@company.com) without verifying them. Eighteen percent of our outreach bounced.</p>
+<p><strong>Version 4:</strong> We added &ldquo;do not guess email addresses. Use only verified contact information.&rdquo; The agent mostly complied. But &ldquo;mostly&rdquo; means one in ten leads still had guessed emails. At our volume, that was several bounces per week.</p>
+<p><strong>Version 5:</strong> We removed the email guessing problem architecturally. Instead of telling the agent not to guess, we added SMTP RCPT TO verification in the email sending script. The agent could write whatever it wanted in the contact field — the sending layer would verify before dispatching. The prompt still says &ldquo;use verified contacts,&rdquo; but the enforcement is in code, not in the prompt.</p>
+<p><strong>Version 6:</strong> We discovered the agent was writing outreach emails that were too long — 300-400 word walls of text referencing funding rounds and company history. We added explicit length constraints: &ldquo;4-6 sentences maximum. Lead with the signal. No preamble about the company&rsquo;s funding or history.&rdquo;</p>
+<p><strong>Version 7:</strong> We added acceptance criteria that the CEO orchestrator checks before using SDR output. If a lead profile is missing a score justification, the output is flagged and excluded from the pipeline until the next run fixes it.</p>
+<p>Seven versions in three months. Each version was a response to a specific failure observed in production. Not a single change was speculative.</p>
+<h2>The Core Lesson: Architectural Constraints Beat Prompt Engineering</h2>
+<p>Version 5 of the SDR prompt is the inflection point in our understanding.</p>
+<p>We spent two iterations trying to make the agent stop guessing email addresses by refining the prompt. &ldquo;Do not guess.&rdquo; &ldquo;Only use verified information.&rdquo; &ldquo;If you cannot find a verified email, leave the field blank.&rdquo; Each version reduced the failure rate but never eliminated it.</p>
+<p>The fix that actually worked was not a prompt change. It was an architectural change: SMTP verification in the sending script. The agent&rsquo;s output is validated by code before it has any external effect.</p>
+<p>This pattern repeated across every agent:</p>
+<ul>
+<li><strong>Write restrictions:</strong> We could not reliably prevent agents from writing to wrong directories via prompt instructions. The fix was <code>--allowedTools</code> at the CLI level, which blocks unauthorized writes before the filesystem is touched.</li>
+<li><strong>Output length:</strong> We could not reliably keep social media posts under character limits via prompts. The fix was a validation check in the publishing script that rejects posts exceeding the limit.</li>
+<li><strong>Data freshness:</strong> We could not stop the CMO agent from citing outdated information via prompt instructions. The fix was passing the current date as context and having the downstream quality gate flag research that references events older than 30 days.</li>
+</ul>
+<p>The pattern: if a failure mode matters, do not rely on the prompt to prevent it. Build the constraint into the system around the agent. Prompts are probabilistic. Code is deterministic. Use code for enforcement and prompts for guidance.</p>
+<p>This does not mean prompts are unimportant. The SDR produces dramatically better output with version 7 than version 1. But the system is reliable because of the architectural constraints, not because the prompts are perfect.</p>
+<h2>Testing Prompts: Quality Gates as Acceptance Tests</h2>
+<p>Each agent has acceptance criteria defined in the orchestrator&rsquo;s configuration. These function like automated tests for prompt output.</p>
+<table>
+<thead>
+<tr>
+<th>Agent</th>
+<th>Acceptance Criteria</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CMO</td>
+<td>Research cites sources. Covers 3+ companies. Includes ICP fit assessment per company.</td>
+</tr>
+<tr>
+<td>SDR</td>
+<td>All scoring fields populated with evidence. Score justification present. Company URL included.</td>
+</tr>
+<tr>
+<td>Social Media</td>
+<td>Post passes content rules. Has CTA or closing question. Under character limit.</td>
+</tr>
+<tr>
+<td>CTO</td>
+<td>Technical claims include proof points. Follows content guidelines.</td>
+</tr>
+</tbody>
+</table>
+<p>After each agent run, the CEO orchestrator reads the output and checks these criteria. Failed checks are logged, flagged in the weekly brief, and the output is excluded from downstream use.</p>
+<p>This is not sophisticated. There is no eval harness running hundreds of test cases against the prompt. It is a set of boolean checks applied to each output. But it catches the failures that matter: missing data, hallucinated details, content rule violations.</p>
+<p>The quality gates also serve as regression tests. When we edit a prompt, the next pipeline run validates the output against the same criteria. If a prompt change causes a previously-passing check to fail, we know immediately.</p>
+<h2>Monitoring: What You Actually Need</h2>
+<p>We track three things per agent run:</p>
+<ol>
+<li>
+<p><strong>Token usage (input and output).</strong> A sudden spike in input tokens means the agent is reading more context than expected — possibly a file grew or the prompt expanded. A spike in output tokens means the agent is producing more than it should, which usually indicates a loop or an overly verbose response.</p>
+</li>
+<li>
+<p><strong>Run duration.</strong> Each agent has a <code>max_turns</code> limit (25-40 turns depending on the agent). If an agent consistently hits its turn limit, the prompt needs to be more focused or the task needs to be decomposed.</p>
+</li>
+<li>
+<p><strong>Quality gate pass rate.</strong> If the SDR agent&rsquo;s output fails acceptance criteria more than once in three consecutive runs, the prompt needs attention.</p>
+</li>
+</ol>
+<p>These three metrics together tell you everything: is the prompt efficient (tokens), is it focused (duration), and is the output correct (quality gates)?</p>
+<p>We also send Telegram alerts for agent failures. A failed agent run sends a push notification immediately. This matters because the agents run unattended at 07:00. Without alerts, a failure would sit unnoticed until someone checked the logs.</p>
+<h2>Failure Modes We Have Encountered</h2>
+<p>Three months of daily agent runs produces a catalog of failure modes. These are the ones that taught us something.</p>
+<p><strong>Context window overflow.</strong> The CMO agent reads market research files that grow over time. After eight weeks, the accumulated research exceeded the context window. The agent started dropping information silently — it would process the first half of the file and ignore the rest. The fix was archiving old research files and keeping only the latest four weeks in the active directory.</p>
+<p><strong>Prompt-environment mismatch.</strong> The Social Media agent&rsquo;s prompt referenced a content calendar file. We renamed the file during a refactor. The agent could not find it, hallucinated a calendar, and produced posts scheduled for dates in the past. The fix was adding a pre-run check that validates all files referenced in the prompt actually exist.</p>
+<p><strong>Cascading state corruption.</strong> The CMO agent once wrote a lead profile directly to <code>crm/leads/</code> instead of <code>research/</code>. The SDR agent read the malformed profile, attempted to enrich it, and produced a corrupted outreach draft. The fix was the write restriction architecture described above. This failure mode has not recurred since.</p>
+<p><strong>Drift between prompt and code.</strong> The email sending script was updated to include SMTP verification, but the SDR prompt still told the agent to verify emails itself. The agent would spend several turns attempting verification that the code would duplicate downstream. We now treat prompt-code synchronization as part of every code review: if you change the code, check if the prompt references the changed behavior.</p>
+<h2>Practical Recommendations</h2>
+<p><strong>Store prompts as standalone files in git.</strong> Not in code, not in a database, not in a UI. Files in git give you history, diffs, blame, and rollback for free.</p>
+<p><strong>Edit prompts in response to observed failures, not hypothetical ones.</strong> Every version of our SDR prompt was a response to a specific bug in production. We never made a speculative edit that stuck.</p>
+<p><strong>Build enforcement into the system, not the prompt.</strong> If a constraint matters, enforce it in code. Use the prompt for guidance and the architecture for guarantees.</p>
+<p><strong>Track tokens, duration, and output quality per agent.</strong> These three metrics are sufficient to detect prompt problems before they cascade.</p>
+<p><strong>Version prompts atomically with the code that uses them.</strong> If you change the email sending script, check if the SDR prompt references email handling. Prompt-code drift is a real bug category.</p>
+<p><strong>Set max turn limits per agent.</strong> Without them, a confused agent will loop until it hits the API rate limit or your budget cap, whichever comes first.</p>
+<p><strong>Accept that prompts will keep changing.</strong> Our most stable prompt has been edited five times in three months. The least stable has been edited twelve times. This is normal. Prompts are code, and code has maintenance costs. Budget for it.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li>Prompts are production code. Version them in git, test them with acceptance criteria, review changes before deploying.</li>
+<li>Architectural constraints are more reliable than prompt instructions for preventing failure modes. Use prompts for guidance. Use code for enforcement.</li>
+<li>Each prompt iteration should be a response to a specific observed failure, not a speculative improvement.</li>
+<li>Three metrics per agent run — token usage, duration, quality gate pass rate — are sufficient to monitor prompt health.</li>
+<li>Prompt-code synchronization is a real maintenance concern. Treat it as part of every code review.</li>
+</ul>
+                    <div class="blog-faq">
+<h2>FAQ</h2>
+<details class="faq-item">
+<summary class="faq-question">How do you test prompt changes before deploying?</summary>
+<div class="faq-answer"><p>We run the agent manually with the updated prompt against the current state of the filesystem. The quality gate checks run automatically and flag any regressions. For high-risk changes (SDR scoring criteria, outreach templates), we run the agent against three to five known leads and compare output to the previous version before committing.</p></div>
+</details>
+<details class="faq-item">
+<summary class="faq-question">How often do prompts need updating?</summary>
+<div class="faq-answer"><p>In the first month, we edited prompts almost daily. By month three, edits dropped to one or two per week, mostly in response to new failure modes or scope changes. The rate decreases as the prompts mature, but it never reaches zero.</p></div>
+</details>
+<details class="faq-item">
+<summary class="faq-question">Do you use prompt templates or parameterized prompts?</summary>
+<div class="faq-answer"><p>The system prompt is static markdown. Dynamic context — the current date, the list of leads to process, the target output directory — is injected into the user prompt at invocation time by the orchestrator. This separation keeps the system prompt stable and the dynamic context explicit.</p>
+<hr />
+<p><em><a href="https://sifrventures.com">SifrVentures</a> builds dedicated engineering teams for tech companies. Based in Berlin. <a href="https://sifrventures.com/how-we-work">Learn how we work</a> | <a href="https://sifrventures.com/blog">Read more on our blog</a></em></p></div>
+</details>
+</div>
+                </div>
+                <div class="blog-post-footer">
+                    SifrVentures builds dedicated engineering teams for tech companies. Based in Berlin.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="footer-info">
+                            <img src="../images/footer-logo.png" alt="footer logo" width="238" height="72">
+                            <p>Empowering businesses through innovative remote tech talent solutions.</p>
+                            <h4>CONTACT US</h4>
+                            <p><a href="mailto:info@sifrventures.com">info@sifrventures.com</a></p>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 ps-0">
+                        <div class="row">
+                            <div class="col-6">
+                                <ul class="footer-menu">
+                                    <li><a href="index.html">Blog</a></li>
+                                    <li><a href="../index.html#contact">Contact</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-rights">
+                    <p>Copyright &copy; 2026 <a href="../index.html">Sifr Ventures</a> All rights reserved</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/bootstrap.bundle.min.js" defer></script>
+
+</body>
+</html>
