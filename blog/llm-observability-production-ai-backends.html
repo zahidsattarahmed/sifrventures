@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Three silent failure modes that standard APM misses, and the instrumentation layer that catches them before your users do.">
+    <title>Production LLM Observability: What You're Missing When Your AI Feature Goes Dark | Sifr Ventures Blog</title>
+    <link rel="canonical" href="https://www.sifrventures.com/blog/llm-observability-production-ai-backends.html">
+    <meta property="og:title" content="Production LLM Observability: What You're Missing When Your AI Feature Goes Dark | Sifr Ventures">
+    <meta property="og:description" content="Three silent failure modes that standard APM misses, and the instrumentation layer that catches them before your users do.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://www.sifrventures.com/blog/llm-observability-production-ai-backends.html">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap">
+    <link href="../css/bootstrap.css" rel="stylesheet">
+    <link href="../css/styles.css" rel="stylesheet">
+    <link href="../css/blog.css" rel="stylesheet">
+    <link rel="icon" href="../images/favicon.png" type="image/x-icon">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Production LLM Observability: What You're Missing When Your AI Feature Goes Dark",
+      "description": "Three silent failure modes that standard APM misses, and the instrumentation layer that catches them before your users do.",
+      "image": "https://www.sifrventures.com/images/og-image.jpg",
+      "datePublished": "2026-08-06T00:00:00+01:00",
+      "author": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      }
+    }
+    </script>
+
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <div class="nav-inner">
+                <nav class="navbar navbar-expand-lg navbar-light">
+                    <a class="navbar-brand" href="../index.html"><img src="../images/logo.png" alt="Sifr Ventures" width="132" height="40"></a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="menu-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item"><a class="nav-link" href="index.html">Blog</a></li>
+                            <li class="nav-item"><a class="btn btn-primary btn-lg" href="../index.html#contact">Contact us</a></li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <section class="blog-post">
+        <div class="container">
+            <div class="blog-post-inner">
+                <a href="index.html" class="blog-back">&larr; All posts</a>
+                <div class="blog-post-header">
+                    <div class="blog-date">August 06, 2026</div>
+                    <h1>Production LLM Observability: What You're Missing When Your AI Feature Goes Dark</h1>
+                    
+                </div>
+                <div class="blog-content">
+                    <p><em>Three silent failure modes that standard APM misses, and the instrumentation layer that catches them before your users do.</em></p>
+<p>Your AI feature passes load testing. Latency is under two seconds, error rate is under one percent, the product demo runs clean. You ship it. Three weeks later, a customer reports that the AI-powered output &ldquo;stopped making sense.&rdquo; Your dashboard shows nothing wrong. The endpoint is returning 200. The logs are quiet.</p>
+<p>This is the observability gap in production AI backends. It is different from anything traditional monitoring tools were built to catch.</p>
+<h2>Why Standard APM Fails for LLM-Backed Services</h2>
+<p>HTTP response codes, p95 latency, and error rates describe the transport layer. For a REST endpoint serving cached data or querying a relational database, that is enough. For an LLM-backed feature, a 200 response tells you almost nothing about whether the system is working correctly.</p>
+<p>A 200 from OpenAI or Anthropic can mean: the model returned a valid response. It can also mean: the model silently truncated your input because it exceeded the context window and returned a coherent-but-incomplete answer. Or: the response is syntactically correct but output quality has shifted because someone updated the system prompt two weeks ago without an evaluation run.</p>
+<p>The failure modes that hit AI-native backends in production do not show up as error spikes on a Grafana dashboard. They show up as a slow erosion of output quality that accumulates over days until a user complains.</p>
+<h2>The Three Failure Modes</h2>
+<h3>Silent Context Truncation</h3>
+<p>Most LLM clients truncate inputs silently when they hit the model&rsquo;s context limit, or throw an exception that gets swallowed by a generic catch block. Your feature continues returning 200s, but the model is working from a partial view of the data. Depending on what gets cut, the output degrades in ways subtle enough to pass automated validation but wrong enough that attentive users notice. The truncation is systematic, predictable, and completely invisible to standard monitoring.</p>
+<h3>Rate Limit Cascades</h3>
+<p>Token-per-minute limits are enforced per API key. At low traffic you will never hit them. At 200 concurrent users, a single high-traffic hour can push you into 429s that your retry logic converts into a thread-blocking cascade. If you are not tracking cumulative token consumption per minute per model, you have no signal before you hit the wall. By the time 429s appear in your error logs, you are already degraded.</p>
+<h3>Prompt Regression</h3>
+<p>Output quality is a function of three things: your prompt, your model version, and your input data distribution. All three change over time. Model providers update default behavior in minor versions. Engineers edit prompts without evaluation runs. Real user traffic exposes edge cases that your staging environment never did. Without a structured evaluation pipeline, prompt regressions surface as customer complaints rather than CI failures.</p>
+<h2>What We&rsquo;ve Seen</h2>
+<p>At one client running an AI-powered document processing feature, the backend was handling several hundred LLM calls per day across two providers. Standard monitoring showed nothing unusual. A code review surfaced a context overflow condition that had been silently truncating inputs for eleven days. No user had seen enough degraded outputs to raise a ticket, but the truncation was systematic for documents over a certain length.</p>
+<p>The fix took two hours: a tokenizer check before each API call, plus a hard rejection of requests that would overflow the context window. What was missing before the fix was a dashboard showing the distribution of input token counts per endpoint. That would have flagged the problem on day one.</p>
+<p>A second pattern: a provider-side model version bump. One team was pinned to <code>gpt-4-turbo</code> by alias, not by exact identifier. The provider&rsquo;s new default version had different formatting behavior for a structured JSON output schema the feature depended on. Schema validation failures started appearing in the retry logs. It took four hours to diagnose because there was no span attribute recording which exact model version had handled each call.</p>
+<h2>The Instrumentation Stack</h2>
+<p>Standard APM covers infrastructure observability. AI-native backends need a second layer on top of it. Four components cover the surface area.</p>
+<h3>1. Structured OpenTelemetry Spans on Every LLM Call</h3>
+<p>Every call to an LLM provider should emit an OpenTelemetry span recording: exact model identifier, input token count, output token count, latency, and provider HTTP status. This is the raw data for everything else.</p>
+<pre class="codehilite"><code class="language-typescript">// NestJS — LLM call wrapped in an OpenTelemetry span
+import { trace, SpanStatusCode } from '@opentelemetry/api';
+
+const tracer = trace.getTracer('llm-service');
+
+async function callLLM(prompt: string, model: string): Promise&lt;string&gt; {
+  return tracer.startActiveSpan('llm.completion', async (span) =&gt; {
+    span.setAttributes({
+      'llm.model': model,
+      'llm.prompt_tokens': estimateTokens(prompt),
+    });
+    try {
+      const res = await openai.chat.completions.create({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      span.setAttributes({
+        'llm.completion_tokens': res.usage?.completion_tokens ?? 0,
+        'llm.total_tokens': res.usage?.total_tokens ?? 0,
+      });
+      span.setStatus({ code: SpanStatusCode.OK });
+      return res.choices[0].message.content ?? '';
+    } catch (err) {
+      span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
+      throw err;
+    } finally {
+      span.end();
+    }
+  });
+}
+</code></pre>
+
+<p>Token count and exact model version per call flow into Prometheus via an OTEL collector. From there, you have the foundation for rate limit alerting and model version attribution.</p>
+<h3>2. Token Budget Alerts</h3>
+<p>Set a Prometheus alert at 70% of your per-key TPM limit. That gives you a two-minute window to queue requests, shed load, or page on-call before hitting 429s.</p>
+<pre class="codehilite"><code class="language-yaml"># Prometheus alert rule
+- alert: LLMTokenBudgetHigh
+  expr: |
+    sum(rate(llm_tokens_total[1m])) by (api_key, model)
+    &gt; 0.70 * on(api_key) llm_tpm_limit
+  for: 2m
+  annotations:
+    summary: &quot;Token budget at {{ $value | humanizePercentage }} for {{ $labels.model }}&quot;
+</code></pre>
+
+<p>The 70% threshold is not arbitrary. At 70%, you have runway to respond before degradation starts. At 90%, you are already mid-cascade.</p>
+<h3>3. Exact Model Version Pinning</h3>
+<p>Pin to exact model identifiers, not aliases. <code>gpt-4o-2024-08-06</code> not <code>gpt-4o</code>. When you upgrade, do it in a PR with a structured evaluation run in CI. Treat model upgrades like dependency upgrades: deliberate, reviewed, gated on test results.</p>
+<p>This is the lowest-effort, highest-leverage change most AI-native teams can make this week. Add one line to your model config, and the four-hour diagnosis of &ldquo;why did output quality shift&rdquo; becomes a one-minute log query.</p>
+<h3>4. Evaluation Pipeline in CI</h3>
+<p>For any feature where output quality matters — which is most LLM features — run structured evaluations against a held-out test set as part of your deployment pipeline. Langfuse integrates directly into most AI backends and can gate deployments on score thresholds.</p>
+<pre class="codehilite"><code class="language-typescript">// Langfuse trace for evaluation tracking (TypeScript)
+const langfuse = new Langfuse({ publicKey, secretKey, baseUrl });
+
+const trace = langfuse.trace({ name: 'document-summary' });
+const generation = trace.generation({
+  name: 'summarize',
+  model: 'gpt-4o-2024-08-06',
+  input: prompt,
+});
+generation.end({ output: result });
+</code></pre>
+
+<p>Your evaluation script queries Langfuse for the latest generation traces against your test set and fails the deployment if quality metrics drop more than 5% from baseline. Prompt regressions become CI failures, not support tickets.</p>
+<p>The evaluation test set does not need to be large. Twenty to thirty representative inputs with labeled expected outputs catches the vast majority of regressions in our experience. The effort to build it is one day. The effort to maintain it is twenty minutes per sprint, when new edge cases surface from production traffic and get added to the set.</p>
+<h2>The Engineering Cost</h2>
+<p>Getting this stack in place takes one backend engineer two to three days, assuming they have shipped LLM features in production before. OpenTelemetry setup is the longest part. Prometheus alerts and Langfuse integration each take a few hours once the spans are flowing.</p>
+<p>The alternative is discovering these failure modes after they have been running silently for a week. That is a four-hour diagnosis, a customer apology, and a post-mortem. Every team we have worked with that shipped this observability stack before their first production incident has been glad they did. Every team that shipped it after their first production incident has said the same thing.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li>Standard APM covers transport-layer health. The three AI-specific failure modes — silent context truncation, rate limit cascades, and prompt regression — each require dedicated instrumentation.</li>
+<li>OpenTelemetry spans on every LLM call are the foundation. Token count, exact model version, and latency per call give you the raw data for everything else.</li>
+<li>Pin to exact model identifiers, not aliases. One config change. Eliminates a class of four-hour debugging sessions.</li>
+<li>Evaluation pipelines should be in CI before your first production incident, not after. The cost is two to three engineer-days. The cost of not having it is a week of silent degradation followed by a customer complaint.</li>
+</ul>
+                    
+                </div>
+                <div class="blog-post-footer">
+                    SifrVentures builds dedicated engineering teams for tech companies. Based in Berlin.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="footer-info">
+                            <img src="../images/footer-logo.png" alt="footer logo" width="238" height="72">
+                            <p>Empowering businesses through innovative remote tech talent solutions.</p>
+                            <h4>CONTACT US</h4>
+                            <p><a href="mailto:info@sifrventures.com">info@sifrventures.com</a></p>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 ps-0">
+                        <div class="row">
+                            <div class="col-6">
+                                <ul class="footer-menu">
+                                    <li><a href="index.html">Blog</a></li>
+                                    <li><a href="../index.html#contact">Contact</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-rights">
+                    <p>Copyright &copy; 2026 <a href="../index.html">Sifr Ventures</a> All rights reserved</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/bootstrap.bundle.min.js" defer></script>
+
+</body>
+</html>
