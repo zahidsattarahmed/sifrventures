@@ -2,6 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://www.sifrventures.com/</loc><priority>1.0</priority></url>
   <url><loc>https://www.sifrventures.com/blog/</loc><priority>0.8</priority></url>
+  <url><loc>https://www.sifrventures.com/blog/ai-agent-layer-existing-saas-platform.html</loc><lastmod>2026-08-13</lastmod><priority>0.7</priority></url>
   <url><loc>https://www.sifrventures.com/blog/llm-observability-production-ai-backends.html</loc><lastmod>2026-08-06</lastmod><priority>0.7</priority></url>
   <url><loc>https://www.sifrventures.com/blog/blog-cto-gap-dach-scale-ups.html</loc><lastmod>2026-04-30</lastmod><priority>0.7</priority></url>
   <url><loc>https://www.sifrventures.com/blog/ai-deployment-backend-engineering-surge.html</loc><lastmod>2026-04-23</lastmod><priority>0.7</priority></url>
