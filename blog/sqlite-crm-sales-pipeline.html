@@ -107,7 +107,7 @@
 <p>This is not a compromise. It is a deliberate architecture. The agents speak markdown. The database speaks SQL. A sync script translates between them on every run. Both layers do what they are good at, and neither tries to do the other&rsquo;s job.</p>
 <h2>The Architecture: Markdown First, SQLite Second</h2>
 <p>The source of truth is a directory of markdown files:</p>
-<pre class="codehilite"><code>crm/leads/
+<div class="codehilite"><pre><span></span><code>crm/leads/
 ├── taktile/
 │   └── profile.md
 ├── parloa/
@@ -122,74 +122,74 @@ outreach/drafts/
 ├── taktile.email-1-sent    # Contains date: &quot;2026-03-10&quot;
 ├── taktile.email-2-sent    # Contains date: &quot;2026-03-13&quot;
 └── ...
-</code></pre>
+</code></pre></div>
 
 <p>Each lead is a directory with a <code>profile.md</code> file. Each outreach action is a marker file in <code>outreach/drafts/</code>. The marker files are deliberately dumb: <code>taktile.approved</code> is an empty file whose existence means &ldquo;approved.&rdquo; <code>taktile.email-1-sent</code> contains a single line with the date the email was sent.</p>
 <p>A sync script (<code>sync.py</code>) runs after every pipeline execution. It parses all markdown profiles and marker files, then upserts everything into SQLite. The database has four tables:</p>
-<pre class="codehilite"><code class="language-sql">CREATE TABLE leads (
-    slug TEXT PRIMARY KEY,
-    company TEXT NOT NULL,
-    website TEXT,
-    industry TEXT,
-    size TEXT,
-    location TEXT,
-    funding TEXT,
-    tech_stack TEXT,
-    score INTEGER,
-    score_budget INTEGER,
-    score_authority INTEGER,
-    score_need INTEGER,
-    score_timeline INTEGER,
-    score_fit INTEGER,
-    stage TEXT DEFAULT 'Research',
-    source TEXT,
-    created_at TEXT,
-    updated_at TEXT,
-    next_action TEXT
-);
+<div class="codehilite"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">leads</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">slug</span><span class="w"> </span><span class="nb">TEXT</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">    </span><span class="n">company</span><span class="w"> </span><span class="nb">TEXT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">website</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">industry</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="k">size</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="k">location</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">funding</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">tech_stack</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">score</span><span class="w"> </span><span class="nb">INTEGER</span><span class="p">,</span>
+<span class="w">    </span><span class="n">score_budget</span><span class="w"> </span><span class="nb">INTEGER</span><span class="p">,</span>
+<span class="w">    </span><span class="n">score_authority</span><span class="w"> </span><span class="nb">INTEGER</span><span class="p">,</span>
+<span class="w">    </span><span class="n">score_need</span><span class="w"> </span><span class="nb">INTEGER</span><span class="p">,</span>
+<span class="w">    </span><span class="n">score_timeline</span><span class="w"> </span><span class="nb">INTEGER</span><span class="p">,</span>
+<span class="w">    </span><span class="n">score_fit</span><span class="w"> </span><span class="nb">INTEGER</span><span class="p">,</span>
+<span class="w">    </span><span class="n">stage</span><span class="w"> </span><span class="nb">TEXT</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="s1">&#39;Research&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="k">source</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">created_at</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">updated_at</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">next_action</span><span class="w"> </span><span class="nb">TEXT</span>
+<span class="p">);</span>
 
-CREATE TABLE outreach_events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    lead_slug TEXT REFERENCES leads(slug),
-    event_type TEXT,    -- 'approved', 'email_1_sent', 'email_2_sent', 'bounce', 'reply'
-    event_date TEXT,
-    notes TEXT
-);
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">outreach_events</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">INTEGER</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="n">AUTOINCREMENT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">lead_slug</span><span class="w"> </span><span class="nb">TEXT</span><span class="w"> </span><span class="k">REFERENCES</span><span class="w"> </span><span class="n">leads</span><span class="p">(</span><span class="n">slug</span><span class="p">),</span>
+<span class="w">    </span><span class="n">event_type</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span><span class="w">    </span><span class="c1">-- &#39;approved&#39;, &#39;email_1_sent&#39;, &#39;email_2_sent&#39;, &#39;bounce&#39;, &#39;reply&#39;</span>
+<span class="w">    </span><span class="n">event_date</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">notes</span><span class="w"> </span><span class="nb">TEXT</span>
+<span class="p">);</span>
 
-CREATE TABLE stage_transitions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    lead_slug TEXT REFERENCES leads(slug),
-    from_stage TEXT,
-    to_stage TEXT,
-    changed_at TEXT,
-    reason TEXT
-);
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">stage_transitions</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">INTEGER</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="n">AUTOINCREMENT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">lead_slug</span><span class="w"> </span><span class="nb">TEXT</span><span class="w"> </span><span class="k">REFERENCES</span><span class="w"> </span><span class="n">leads</span><span class="p">(</span><span class="n">slug</span><span class="p">),</span>
+<span class="w">    </span><span class="n">from_stage</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">to_stage</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">changed_at</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">reason</span><span class="w"> </span><span class="nb">TEXT</span>
+<span class="p">);</span>
 
-CREATE TABLE telegram_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    message_type TEXT,
-    reference_id TEXT,
-    sent_at TEXT,
-    chat_id TEXT,
-    message_text TEXT
-);
-</code></pre>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">telegram_log</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">INTEGER</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="n">AUTOINCREMENT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">message_type</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">reference_id</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">sent_at</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">chat_id</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="k">message_text</span><span class="w"> </span><span class="nb">TEXT</span>
+<span class="p">);</span>
+</code></pre></div>
 
 <p>That is the entire schema. Four tables, no joins required for the common queries, no indexes beyond the primary keys. The <code>leads</code> table has 18 columns. The <code>outreach_events</code> table tracks every email sent, every bounce, every reply, with timestamps.</p>
 <h2>Why Markdown Is the Source of Truth</h2>
 <p>The agents are the primary users of the CRM. They create leads, score them, write outreach drafts, and update statuses. Every one of these operations is a file write.</p>
 <p>When the SDR agent creates a new lead, it writes a <code>profile.md</code> with structured fields:</p>
-<pre class="codehilite"><code class="language-markdown"># Taktile
+<div class="codehilite"><pre><span></span><code><span class="gh"># Taktile</span>
 
-## Overview
-- **Website:** https://taktile.com
-- **Industry:** Fintech / Decision Intelligence
-- **Size:** 51-200
-- **Location:** Berlin, Germany
-- **Funding:** Series B ($54M)
-- **Tech stack:** Python, TypeScript, React, Kubernetes
+<span class="gu">## Overview</span>
+<span class="k">-</span><span class="w"> </span><span class="gs">**Website:**</span> https://taktile.com
+<span class="k">-</span><span class="w"> </span><span class="gs">**Industry:**</span> Fintech / Decision Intelligence
+<span class="k">-</span><span class="w"> </span><span class="gs">**Size:**</span> 51-200
+<span class="k">-</span><span class="w"> </span><span class="gs">**Location:**</span> Berlin, Germany
+<span class="k">-</span><span class="w"> </span><span class="gs">**Funding:**</span> Series B ($54M)
+<span class="k">-</span><span class="w"> </span><span class="gs">**Tech stack:**</span> Python, TypeScript, React, Kubernetes
 
-## Score
+<span class="gu">## Score</span>
 
 | Dimension | Score | Max | Justification |
 |-----------|-------|-----|---------------|
@@ -198,13 +198,13 @@ CREATE TABLE telegram_log (
 | Need | 16 | 20 | 8 open engineering roles |
 | Timeline | 12 | 20 | Scaling post-fundraise |
 | Fit | 15 | 20 | Python/TS stack matches our hiring pipeline |
-| **Total** | **75** | **100** | |
+| <span class="gs">**Total**</span> | <span class="gs">**75**</span> | <span class="gs">**100**</span> | |
 
-## Status
-- **Stage:** Outreach
-- **Created:** 2026-03-10
-- **Last updated:** 2026-03-13
-</code></pre>
+<span class="gu">## Status</span>
+<span class="k">-</span><span class="w"> </span><span class="gs">**Stage:**</span> Outreach
+<span class="k">-</span><span class="w"> </span><span class="gs">**Created:**</span> 2026-03-10
+<span class="k">-</span><span class="w"> </span><span class="gs">**Last updated:**</span> 2026-03-13
+</code></pre></div>
 
 <p>This file is simultaneously the agent&rsquo;s output, the human-readable record, and the sync source. There is no translation layer between what the agent produces and what the system stores. The agent writes markdown because that is what LLMs produce naturally. The system reads markdown because that is what the sync script parses.</p>
 <p>Git history provides a complete audit trail. Every field change is a commit. You can run <code>git log --follow crm/leads/taktile/profile.md</code> and see every score update, stage change, and profile enrichment with timestamps and diffs.</p>
@@ -220,51 +220,51 @@ CREATE TABLE telegram_log (
 </ol>
 <p>The <code>parse_score_table()</code> function handles all four. When the SDR agent drifts to a new format (which happens when the prompt is updated or the model changes), we add a parser for it. The sync script is tolerant of format variation because the agents are not perfectly consistent.</p>
 <p>Stage normalization is similarly flexible:</p>
-<pre class="codehilite"><code class="language-python">def normalize_stage(raw_stage):
-    &quot;&quot;&quot;Normalize freeform stage text to a clean stage name.
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">normalize_stage</span><span class="p">(</span><span class="n">raw_stage</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize freeform stage text to a clean stage name.</span>
 
-    'Research — draft outreach immediately' -&gt; 'Research'
-    'New — not yet contacted' -&gt; 'Identified'
-    'New Lead — Research Complete' -&gt; 'Research'
-    &quot;&quot;&quot;
-    if not raw_stage:
-        return &quot;Identified&quot;
-    base = re.split(r&quot;\s*[—–\-]\s*&quot;, raw_stage, maxsplit=1)[0].strip()
-    base_lower = base.lower()
-    if base_lower in (&quot;new&quot;, &quot;new lead&quot;, &quot;identified&quot;):
-        return &quot;Identified&quot;
-    for stage in VALID_STAGES:
-        if stage.lower() == base_lower:
-            return stage
-    return base if base in VALID_STAGES else &quot;Research&quot;
-</code></pre>
+<span class="sd">    &#39;Research — draft outreach immediately&#39; -&gt; &#39;Research&#39;</span>
+<span class="sd">    &#39;New — not yet contacted&#39; -&gt; &#39;Identified&#39;</span>
+<span class="sd">    &#39;New Lead — Research Complete&#39; -&gt; &#39;Research&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">raw_stage</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;Identified&quot;</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\s*[—–\-]\s*&quot;</span><span class="p">,</span> <span class="n">raw_stage</span><span class="p">,</span> <span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">base_lower</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">base_lower</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;new&quot;</span><span class="p">,</span> <span class="s2">&quot;new lead&quot;</span><span class="p">,</span> <span class="s2">&quot;identified&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;Identified&quot;</span>
+    <span class="k">for</span> <span class="n">stage</span> <span class="ow">in</span> <span class="n">VALID_STAGES</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">stage</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="n">base_lower</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">stage</span>
+    <span class="k">return</span> <span class="n">base</span> <span class="k">if</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">VALID_STAGES</span> <span class="k">else</span> <span class="s2">&quot;Research&quot;</span>
+</code></pre></div>
 
 <p>The agent writes &ldquo;Research — draft outreach immediately&rdquo; as the stage. The sync script extracts &ldquo;Research.&rdquo; This tolerance for freeform input is essential when your data producers are LLMs that add editorial notes to structured fields.</p>
 <h2>Stage Reconciliation: When Markers Override Markdown</h2>
 <p>This is the most important logic in the sync script: if outreach marker files exist for a lead, the stage is forced to &ldquo;Outreach&rdquo; regardless of what the markdown profile says.</p>
 <p>The SDR agent might write a lead profile with <code>Stage: Research</code>, then in the same pipeline run, score it above 60 and create an outreach draft with an <code>.approved</code> marker. The profile still says &ldquo;Research&rdquo; because the agent wrote the profile before making the outreach decision. Without reconciliation, the database would show the lead as &ldquo;Research&rdquo; when it has already been approved for outreach.</p>
 <p>The sync script checks for this:</p>
-<pre class="codehilite"><code class="language-python"># Check for stage transition before upserting
-existing = get_lead(slug)
-if existing and existing.get(&quot;stage&quot;) and data.get(&quot;stage&quot;):
-    old_stage = existing[&quot;stage&quot;].lower()
-    new_stage = data[&quot;stage&quot;].lower()
-    advanced_stages = (&quot;sequence complete&quot;, &quot;re-approach&quot;, &quot;qualifying&quot;,
-                       &quot;meeting&quot;, &quot;proposal&quot;, &quot;negotiation&quot;, &quot;won&quot;)
-    if old_stage in advanced_stages and new_stage not in advanced_stages:
-        del data[&quot;stage&quot;]  # Keep the DB stage, don't regress
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Check for stage transition before upserting</span>
+<span class="n">existing</span> <span class="o">=</span> <span class="n">get_lead</span><span class="p">(</span><span class="n">slug</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">existing</span> <span class="ow">and</span> <span class="n">existing</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stage&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stage&quot;</span><span class="p">):</span>
+    <span class="n">old_stage</span> <span class="o">=</span> <span class="n">existing</span><span class="p">[</span><span class="s2">&quot;stage&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">new_stage</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;stage&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">advanced_stages</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;sequence complete&quot;</span><span class="p">,</span> <span class="s2">&quot;re-approach&quot;</span><span class="p">,</span> <span class="s2">&quot;qualifying&quot;</span><span class="p">,</span>
+                       <span class="s2">&quot;meeting&quot;</span><span class="p">,</span> <span class="s2">&quot;proposal&quot;</span><span class="p">,</span> <span class="s2">&quot;negotiation&quot;</span><span class="p">,</span> <span class="s2">&quot;won&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">old_stage</span> <span class="ow">in</span> <span class="n">advanced_stages</span> <span class="ow">and</span> <span class="n">new_stage</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">advanced_stages</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;stage&quot;</span><span class="p">]</span>  <span class="c1"># Keep the DB stage, don&#39;t regress</span>
+</code></pre></div>
 
 <p>The database stage is authoritative for advancement. If a lead has reached &ldquo;Sequence Complete&rdquo; (all emails sent), the markdown profile cannot regress it back to &ldquo;Outreach.&rdquo; This prevents a common failure mode where re-running the SDR agent would reset stages of leads that have already completed their outreach sequence.</p>
 <p>The outreach_events table is the evidence layer. Every email sent, every bounce, every reply is logged with a timestamp:</p>
-<pre class="codehilite"><code class="language-python">patterns = [
-    (&quot;*.approved&quot;, &quot;approved&quot;),
-    (&quot;*.email-1-sent&quot;, &quot;email_1_sent&quot;),
-    (&quot;*.email-2-sent&quot;, &quot;email_2_sent&quot;),
-    (&quot;*.email-3-sent&quot;, &quot;email_3_sent&quot;),
-    (&quot;*.breakup-sent&quot;, &quot;breakup_sent&quot;),
-]
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="n">patterns</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s2">&quot;*.approved&quot;</span><span class="p">,</span> <span class="s2">&quot;approved&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;*.email-1-sent&quot;</span><span class="p">,</span> <span class="s2">&quot;email_1_sent&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;*.email-2-sent&quot;</span><span class="p">,</span> <span class="s2">&quot;email_2_sent&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;*.email-3-sent&quot;</span><span class="p">,</span> <span class="s2">&quot;email_3_sent&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;*.breakup-sent&quot;</span><span class="p">,</span> <span class="s2">&quot;breakup_sent&quot;</span><span class="p">),</span>
+<span class="p">]</span>
+</code></pre></div>
 
 <p>The marker file <code>taktile.email-2-sent</code> becomes a row in <code>outreach_events</code> with <code>lead_slug='taktile'</code>, <code>event_type='email_2_sent'</code>, and <code>event_date='2026-03-13'</code>. This table is what makes queries like &ldquo;which leads have received Email 1 but not Email 2, and it has been 3+ days?&rdquo; possible.</p>
 <h2>Query Patterns</h2>
@@ -275,7 +275,7 @@ if existing and existing.get(&quot;stage&quot;) and data.get(&quot;stage&quot;):
 <p><strong>Reply rate calculation.</strong> <code>SELECT COUNT(DISTINCT lead_slug) FROM outreach_events WHERE event_type = 'reply'</code> divided by <code>SELECT COUNT(DISTINCT lead_slug) FROM outreach_events WHERE event_type = 'email_1_sent'</code>. This is the north star metric for outreach effectiveness. It runs every day at 20:00 for the pipeline status message.</p>
 <h2>Auto-Generated pipeline.md</h2>
 <p>The pipeline summary that humans read (<code>crm/pipeline.md</code>) is auto-generated by the sync script. It is never manually edited. On every sync run, the script queries the database and writes a markdown table:</p>
-<pre class="codehilite"><code class="language-markdown">## Pipeline Summary
+<div class="codehilite"><pre><span></span><code><span class="gu">## Pipeline Summary</span>
 
 | Stage | Count |
 |-------|-------|
@@ -284,13 +284,13 @@ if existing and existing.get(&quot;stage&quot;) and data.get(&quot;stage&quot;):
 | Sequence Complete | 28 |
 | Re-approach | 2 |
 
-## Active Outreach
+<span class="gu">## Active Outreach</span>
 
 | Company | Score | Last Email | Next Due |
 |---------|-------|------------|----------|
 | Taktile | 75 | Email 2 (Mar 13) | Email 3 (Mar 16) |
 | Parloa | 68 | Email 1 (Mar 13) | Email 2 (Mar 16) |
-</code></pre>
+</code></pre></div>
 
 <p>This file exists purely for human consumption. It is a rendered view of the database. If it gets corrupted or deleted, the next sync regenerates it.</p>
 <h2>Why Not a &ldquo;Real&rdquo; CRM?</h2>

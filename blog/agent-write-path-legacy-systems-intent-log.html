@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Letting an agent write to a legacy system of record takes an intent log, not a better prompt.">
+    <title>Your AI Agent Will Retry. Your Booking System Will Not Notice. | Sifr Ventures Blog</title>
+    <link rel="canonical" href="https://www.sifrventures.com/blog/agent-write-path-legacy-systems-intent-log.html">
+    <meta property="og:title" content="Your AI Agent Will Retry. Your Booking System Will Not Notice. | Sifr Ventures">
+    <meta property="og:description" content="Letting an agent write to a legacy system of record takes an intent log, not a better prompt.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://www.sifrventures.com/blog/agent-write-path-legacy-systems-intent-log.html">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap">
+    <link href="../css/bootstrap.css" rel="stylesheet">
+    <link href="../css/styles.css" rel="stylesheet">
+    <link href="../css/blog.css" rel="stylesheet">
+    <link rel="icon" href="../images/favicon.png" type="image/x-icon">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Your AI Agent Will Retry. Your Booking System Will Not Notice.",
+      "description": "Letting an agent write to a legacy system of record takes an intent log, not a better prompt.",
+      "image": "https://www.sifrventures.com/images/og-image.jpg",
+      "datePublished": "2026-10-29T00:00:00+01:00",
+      "author": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      }
+    }
+    </script>
+
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <div class="nav-inner">
+                <nav class="navbar navbar-expand-lg navbar-light">
+                    <a class="navbar-brand" href="../index.html"><img src="../images/logo.png" alt="Sifr Ventures" width="132" height="40"></a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="menu-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item"><a class="nav-link" href="index.html">Blog</a></li>
+                            <li class="nav-item"><a class="btn btn-primary btn-lg" href="../index.html#contact">Contact us</a></li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <section class="blog-post">
+        <div class="container">
+            <div class="blog-post-inner">
+                <a href="index.html" class="blog-back">&larr; All posts</a>
+                <div class="blog-post-header">
+                    <div class="blog-date">October 29, 2026</div>
+                    <h1>Your AI Agent Will Retry. Your Booking System Will Not Notice.</h1>
+                    
+                </div>
+                <div class="blog-content">
+                    <p><em>Letting an agent write to a legacy system of record takes an intent log, not a better prompt.</em></p>
+<p>The agent calls <code>create_booking</code>. The legacy API takes 31 seconds and the HTTP client times out. The orchestrator retries the step. The second call succeeds, and the customer now holds two reservations and a confused confirmation email. The prompt was fine. The model was fine. Nothing in the stack knew that the first call had actually gone through.</p>
+<p>Every agent pilot we look at passes its demo on read-only tools: search, lookup, summarize. The trouble starts with the first tool that changes state. Booking, order entry, ticket creation, ERP postings. That is the write path, and it needs the same engineering you would give a payment flow.</p>
+<h2>An agent has three retry layers, and the legacy system sees all of them</h2>
+<p>The first layer is the HTTP client. Most SDKs retry on connection errors and 5xx responses by default. The second is the orchestrator. Whether you use LangGraph, Temporal, a queue worker, or a loop you wrote yourself, a failed step gets re-run, and a redelivered message gets processed twice. At-least-once delivery is the default contract of nearly every queue you will use.</p>
+<p>The third layer is unique to agents. The model reads a timeout or an ambiguous response, decides the action probably failed, and calls the tool again. This retry is not byte-identical to the first. The arguments may differ in small ways: <code>"adults": 2</code> versus <code>"adults": "two"</code>, a date in a different format, an extra optional field. An idempotency key derived from the raw request body will not catch it.</p>
+<p>Stripe popularized client-supplied idempotency keys for exactly this problem, and they work well when the downstream system honors them. Many systems of record do not. SOAP interfaces, batch-file ERPs, and older reservation backends often have no idempotency concept at all. Some will happily create a duplicate and return a fresh ID each time.</p>
+<h2>A timeout is not a failure, and your agent needs to be told that</h2>
+<p>The most damaging bug in these systems is a tool wrapper that turns a timeout into the string <code>"Error: request failed"</code>. The model reads that as a failure and does what a helpful assistant does: it tries again.</p>
+<p>The honest state after a timeout is unknown. The request may have been rejected, may still be queued, or may have committed. Treat it as a fourth outcome next to success, rejection, and error. The agent should receive &ldquo;outcome pending, do not retry&rdquo; and a reconciler should find out what happened.</p>
+<p>We apply the same discipline to our own internal tooling. Our outreach pipeline runs agents that draft and schedule emails, and the sender records a marker per lead and per email step, checked before every send. The agent never decides whether an email already went out. A file on disk does. The mechanism is almost embarrassingly low-tech, and it has survived crashed runs and re-triggered cron jobs because the check lives outside the model. Production systems need the same property with a stronger store behind it.</p>
+<h2>Put an intent log between the model and the legacy API</h2>
+<p>The pattern is small. The agent never calls the legacy system directly. It calls a tool wrapper that writes an intent row to Postgres and returns. A separate worker executes intents against the downstream system.</p>
+<div class="codehilite"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">tool_intents</span><span class="w"> </span><span class="p">(</span>
+<span class="w">  </span><span class="n">intent_key</span><span class="w">   </span><span class="nb">text</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">  </span><span class="n">run_id</span><span class="w">       </span><span class="n">uuid</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="n">tool</span><span class="w">         </span><span class="nb">text</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="n">args</span><span class="w">         </span><span class="n">jsonb</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="k">state</span><span class="w">        </span><span class="nb">text</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span>
+<span class="w">               </span><span class="k">CHECK</span><span class="w"> </span><span class="p">(</span><span class="k">state</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="s1">&#39;pending&#39;</span><span class="p">,</span><span class="s1">&#39;sent&#39;</span><span class="p">,</span><span class="s1">&#39;confirmed&#39;</span><span class="p">,</span><span class="s1">&#39;rejected&#39;</span><span class="p">,</span><span class="s1">&#39;unknown&#39;</span><span class="p">)),</span>
+<span class="w">  </span><span class="n">external_ref</span><span class="w"> </span><span class="nb">text</span><span class="p">,</span>
+<span class="w">  </span><span class="n">created_at</span><span class="w">   </span><span class="n">timestamptz</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">now</span><span class="p">(),</span>
+<span class="w">  </span><span class="n">updated_at</span><span class="w">   </span><span class="n">timestamptz</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">now</span><span class="p">()</span>
+<span class="p">);</span>
+</code></pre></div>
+
+<p>The key is computed from business intent, not from the request:</p>
+<div class="codehilite"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">parsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">BookingArgs</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">rawArgs</span><span class="p">);</span><span class="w">        </span><span class="c1">// zod: &quot;two&quot; becomes 2, dates become ISO</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">intentKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">sha256</span><span class="p">([</span><span class="nx">run</span><span class="p">.</span><span class="nx">id</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;create_booking&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">stableStringify</span><span class="p">(</span><span class="nx">parsed</span><span class="p">)].</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="p">));</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">res</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">db</span><span class="p">.</span><span class="nx">query</span><span class="p">(</span>
+<span class="w">  </span><span class="sb">`INSERT INTO tool_intents (intent_key, run_id, tool, args, state)</span>
+<span class="sb">   VALUES ($1, $2, &#39;create_booking&#39;, $3, &#39;pending&#39;)</span>
+<span class="sb">   ON CONFLICT (intent_key) DO NOTHING</span>
+<span class="sb">   RETURNING intent_key`</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="nx">intentKey</span><span class="p">,</span><span class="w"> </span><span class="nx">run</span><span class="p">.</span><span class="nx">id</span><span class="p">,</span><span class="w"> </span><span class="nx">parsed</span><span class="p">],</span>
+<span class="p">);</span>
+
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">res</span><span class="p">.</span><span class="nx">rowCount</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="mf">0</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">loadPriorResult</span><span class="p">(</span><span class="nx">intentKey</span><span class="p">);</span><span class="w"> </span><span class="c1">// same intent, same answer</span>
+</code></pre></div>
+
+<p>Schema validation does the normalization work. Once the model&rsquo;s arguments have been coerced into a strict type, two retries that mean the same thing hash to the same key, and the second insert hits the primary key and returns the earlier result. If a run can legitimately perform the same action twice, add the plan step or line item ID to the hash so the two intents differ on purpose.</p>
+<p>The worker claims rows with <code>SELECT ... FOR UPDATE SKIP LOCKED</code>, which lets several workers drain the table without double-claiming. Writing the intent and enqueuing the work is one transaction, which is the transactional outbox pattern. Before it calls the legacy API, it writes the intent key into whatever free-text reference field the system offers. Almost every booking or ERP interface has one.</p>
+<h2>Reconcile unknowns by reading, never by writing again</h2>
+<p>When the worker&rsquo;s call times out, the intent moves to <code>unknown</code>. A reconciler job then queries the legacy system for a record carrying that reference. If it finds one, the intent becomes <code>confirmed</code> with the external ID. If nothing appears after a defined window, it becomes <code>rejected</code> and can be retried safely under the same key, because the reconciler has verified that nothing exists.</p>
+<p>Meanwhile the agent sees a structured result such as <code>{"status":"pending","intent":"..."}</code>. A model told that a booking is pending will tell the customer it is being processed. A model told that a call failed will try something else.</p>
+<h2>Split the dangerous tools in two</h2>
+<p>Give the model <code>hold_booking</code> and <code>confirm_booking</code> instead of one <code>create_booking</code>. A hold carries a TTL and expires on its own, so a wrong hold costs nothing. Confirmation is the irreversible step, and it can sit behind a policy check, an amount threshold, or a human approval click. Our own outreach pipeline works this way: agents draft freely, and a person approves before the first email to a new contact goes out.</p>
+<p>This split also gives you a clean place to enforce limits. The model can propose a thousand holds. Only a bounded number can ever become confirmations.</p>
+<h2>What it takes to build</h2>
+<p>None of this needs an ML team. It is Postgres, a worker process, schema validation, and a reconciler, which makes it a solid fit for one senior backend engineer working in NestJS or Python and owning the integration boundary. The unglamorous parts, such as the reconciler and the monitoring on <code>unknown</code> intents, decide whether the agent can be trusted with real customers. Teams under funding pressure tend to postpone them until the first duplicate order arrives.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li>Agents retry at three layers: HTTP client, orchestrator, and the model itself. Only the first two are visible in your logs.</li>
+<li>Treat a timeout as <code>unknown</code>, tell the model &ldquo;pending, do not retry&rdquo;, and resolve the state by reading the downstream system.</li>
+<li>Derive idempotency keys from validated, normalized business arguments, not from raw request bodies or LLM-generated call IDs.</li>
+<li>Route every state-changing tool through an intent table in Postgres, with a worker and a reconciler between the model and the system of record.</li>
+<li>Split irreversible actions into a cheap, expiring hold and a gated confirmation.</li>
+</ul>
+                    
+                </div>
+                <div class="blog-post-footer">
+                    SifrVentures builds dedicated engineering teams for tech companies. Based in Berlin.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="footer-info">
+                            <img src="../images/footer-logo.png" alt="footer logo" width="238" height="72">
+                            <p>Empowering businesses through innovative remote tech talent solutions.</p>
+                            <h4>CONTACT US</h4>
+                            <p><a href="mailto:info@sifrventures.com">info@sifrventures.com</a></p>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 ps-0">
+                        <div class="row">
+                            <div class="col-6">
+                                <ul class="footer-menu">
+                                    <li><a href="index.html">Blog</a></li>
+                                    <li><a href="../index.html#contact">Contact</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-rights">
+                    <p>Copyright &copy; 2026 <a href="../index.html">Sifr Ventures</a> All rights reserved</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/bootstrap.bundle.min.js" defer></script>
+
+</body>
+</html>

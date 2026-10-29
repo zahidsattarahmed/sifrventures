@@ -77,7 +77,7 @@
 <p>This is how it works, what broke along the way, and why the architecture ended up the way it did.</p>
 <h2>The Pipeline</h2>
 <p>A single pipeline run walks through five stages. Each stage has a specific job and a specific failure mode we designed around.</p>
-<pre class="codehilite"><code>GitHub Issue (labeled &quot;dev-agents&quot;)
+<div class="codehilite"><pre><span></span><code>GitHub Issue (labeled &quot;dev-agents&quot;)
     │
     ▼ repository_dispatch
 ┌──────────────────────────────────────────────┐
@@ -97,7 +97,7 @@
 │  ├── Auto-merge (squash)                     │
 │  └── Comment on originating issue            │
 └──────────────────────────────────────────────┘
-</code></pre>
+</code></pre></div>
 
 <p>The Tech Lead is a Sonnet session with 100 turns. It maintains context across all stages — it knows what it designed, what the implementer wrote, what verification found, and what QA flagged. It delegates heavy work to Opus subagents that run in isolated contexts. This is deliberate: the orchestrator keeps the big picture while workers focus on implementation details without context pollution.</p>
 <h2>Single Orchestrator, Isolated Subagents</h2>
@@ -150,19 +150,19 @@
 <p>Sonnet orchestrates because it is fast and cheap for tool-heavy workflows. Opus implements because it writes better code on first attempt, which matters when you are paying per turn. Haiku monitors because you do not need a frontier model to check if a process is still running.</p>
 <h2>Event-Driven Trigger Architecture</h2>
 <p>Target repos stay lightweight. Each onboarded repo gets one small workflow file that fires a <code>repository_dispatch</code> event when an issue is labeled <code>dev-agents</code>. The dispatch lands on the dev-agents repo, where the self-hosted runner picks it up.</p>
-<pre class="codehilite"><code>Target repo: &quot;Add dark mode&quot; issue labeled
+<div class="codehilite"><pre><span></span><code>Target repo: &quot;Add dark mode&quot; issue labeled
   → repository_dispatch to dev-agents repo
     → GitHub Actions on self-hosted runner
       → Enqueue trigger to filesystem queue
         → Process queue (priority-sorted)
           → Run pipeline
-</code></pre>
+</code></pre></div>
 
 <p>This separation matters for two reasons. First, target repos do not need Claude Code installed or any AI dependencies. The only addition is a 30-line workflow file. Second, the queue lives on the runner, so it survives workflow restarts and can batch triggers from multiple repos.</p>
 <p>Pipeline type is auto-detected from issue labels: <code>bug</code> maps to bugfix (skip design, go straight to implementation), <code>hotfix</code> maps to highest priority. Everything else is a feature with full design-first flow.</p>
 <h2>The Priority Queue</h2>
 <p>Triggers are enqueued to a persistent filesystem queue on the runner. No database, no Redis, no message broker. YAML files sorted by filename.</p>
-<pre class="codehilite"><code>~/dev-agents-queue/
+<div class="codehilite"><pre><span></span><code>~/dev-agents-queue/
 ├── pending/myapp/
 │   ├── 1-20260313T100000Z-fix-auth.yaml       # hotfix
 │   ├── 2-20260313T100100Z-fix-layout.yaml     # bugfix
@@ -171,7 +171,7 @@
 ├── completed/myapp/
 ├── failed/myapp/
 └── locks/myapp.lock                            # flock per project
-</code></pre>
+</code></pre></div>
 
 <p>The priority prefix (<code>1-</code>, <code>2-</code>, <code>3-</code>) means <code>sort</code> naturally processes hotfixes before bugfixes before features. Within the same priority, timestamps provide FIFO ordering.</p>
 <p>Concurrency rules: same project runs sequentially (one <code>flock</code> per project), different projects run in parallel (background processes). A hotfix for project A does not wait for project B&rsquo;s feature to finish.</p>
@@ -179,8 +179,8 @@
 <p>Crash recovery: if a trigger sits in <code>active/</code> for more than four hours, <code>process-queue.sh</code> moves it back to <code>pending/</code>. Long enough to handle legitimate large features, short enough to recover from a crashed pipeline before the next cycle.</p>
 <h2>One-Command Repo Onboarding</h2>
 <p>Onboarding a new repo takes one command:</p>
-<pre class="codehilite"><code class="language-bash">./scripts/onboard-repo.sh myorg/myapp
-</code></pre>
+<div class="codehilite"><pre><span></span><code>./scripts/onboard-repo.sh<span class="w"> </span>myorg/myapp
+</code></pre></div>
 
 <p>This does six things:</p>
 <ol>
@@ -236,23 +236,23 @@
 <p>This ordering was a deliberate choice. Post-PR review creates noise: a PR exists, reviewers see it, but it might have obvious issues that a pre-merge check would catch. Pre-push review means the PR that lands in your inbox has already been verified and reviewed. The PR is a record, not a gate.</p>
 <h2>Failure Memory</h2>
 <p>Agents learn from past mistakes. Every pipeline failure is appended to a per-project log file:</p>
-<pre class="codehilite"><code class="language-yaml">---
-date: 2026-03-10T14:22:00+00:00
-task: fix-auth
-title: Fix OAuth token refresh
-type: bugfix
-exit_code: 1
-error: |
-  TypeScript error: Property 'refresh_token' does not exist on type 'Session'
-</code></pre>
+<div class="codehilite"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">date</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2026-03-10T14:22:00+00:00</span>
+<span class="nt">task</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fix-auth</span>
+<span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Fix OAuth token refresh</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bugfix</span>
+<span class="nt">exit_code</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="nt">error</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">  </span><span class="no">TypeScript error: Property &#39;refresh_token&#39; does not exist on type &#39;Session&#39;</span>
+</code></pre></div>
 
 <p>The last 50 lines of this failure log are injected into future pipeline prompts with a header: &ldquo;These are recent pipeline failures. Learn from them — do NOT repeat the same mistakes.&rdquo;</p>
 <p>This is not fine-tuning. It is context injection. But it works. After recording a TypeScript strict-mode failure, subsequent pipelines check for strict mode before writing code. After recording a test database teardown issue, QA agents started including cleanup steps.</p>
 <p>The failure log is append-only, capped at 50 lines of context injection, and automatically pruned when tasks move to <code>completed/</code> after 30 days.</p>
 <h2>The Kill Switch</h2>
-<pre class="codehilite"><code class="language-bash">touch data/.pause    # Stop everything
-rm data/.pause       # Resume
-</code></pre>
+<div class="codehilite"><pre><span></span><code>touch<span class="w"> </span>data/.pause<span class="w">    </span><span class="c1"># Stop everything</span>
+rm<span class="w"> </span>data/.pause<span class="w">       </span><span class="c1"># Resume</span>
+</code></pre></div>
 
 <p>Every script checks for <code>.pause</code> at the top. This is the same pattern we use in our sales pipeline — a filesystem-level circuit breaker that requires no process management.</p>
 <h2>What This Cost</h2>

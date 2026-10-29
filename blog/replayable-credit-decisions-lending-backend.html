@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="If you cannot re-run a lending decision from last March and get the same answer, you do not have an audit trail. You have a log file.">
+    <title>Replayable Credit Decisions: The Backend Pattern Auditors and Engineers Both Want | Sifr Ventures Blog</title>
+    <link rel="canonical" href="https://www.sifrventures.com/blog/replayable-credit-decisions-lending-backend.html">
+    <meta property="og:title" content="Replayable Credit Decisions: The Backend Pattern Auditors and Engineers Both Want | Sifr Ventures">
+    <meta property="og:description" content="If you cannot re-run a lending decision from last March and get the same answer, you do not have an audit trail. You have a log file.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://www.sifrventures.com/blog/replayable-credit-decisions-lending-backend.html">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap">
+    <link href="../css/bootstrap.css" rel="stylesheet">
+    <link href="../css/styles.css" rel="stylesheet">
+    <link href="../css/blog.css" rel="stylesheet">
+    <link rel="icon" href="../images/favicon.png" type="image/x-icon">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Replayable Credit Decisions: The Backend Pattern Auditors and Engineers Both Want",
+      "description": "If you cannot re-run a lending decision from last March and get the same answer, you do not have an audit trail. You have a log file.",
+      "image": "https://www.sifrventures.com/images/og-image.jpg",
+      "datePublished": "2026-10-22T00:00:00+01:00",
+      "author": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      }
+    }
+    </script>
+
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <div class="nav-inner">
+                <nav class="navbar navbar-expand-lg navbar-light">
+                    <a class="navbar-brand" href="../index.html"><img src="../images/logo.png" alt="Sifr Ventures" width="132" height="40"></a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="menu-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item"><a class="nav-link" href="index.html">Blog</a></li>
+                            <li class="nav-item"><a class="btn btn-primary btn-lg" href="../index.html#contact">Contact us</a></li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <section class="blog-post">
+        <div class="container">
+            <div class="blog-post-inner">
+                <a href="index.html" class="blog-back">&larr; All posts</a>
+                <div class="blog-post-header">
+                    <div class="blog-date">October 22, 2026</div>
+                    <h1>Replayable Credit Decisions: The Backend Pattern Auditors and Engineers Both Want</h1>
+                    
+                </div>
+                <div class="blog-content">
+                    <p><em>If you cannot re-run a lending decision from last March and get the same answer, you do not have an audit trail. You have a log file.</em></p>
+<p>A merchant asks why their credit line was declined in March. Compliance wants the answer by Friday. The engineer who wrote the underwriting rules left in June, the rules have been edited eleven times since, and the bureau response was never stored. All that remains is a row with <code>status = 'declined'</code>.</p>
+<p>This is the normal state of lending backends that grew from a prototype. Underwriting starts as an <code>if</code> block in a service. It becomes a config file, then a feature-flagged config file, then a set of rules that product managers adjust directly. Each step is reasonable. Together they destroy your ability to explain a past decision.</p>
+<h2>A decision is a function of inputs and rules, and you are storing neither</h2>
+<p>Most schemas store the outcome. Some store the score. Almost none store the exact inputs the rules saw, or the exact version of the rules that ran. Both are required to reproduce a decision.</p>
+<p>The gap matters more now than it did three years ago. The CJEU&rsquo;s SCHUFA ruling (C-634/21, December 2023) held that producing a credit score can itself count as an automated decision under GDPR Article 22 when a lender relies on it heavily. For natural persons, including sole traders, that brings explanation and human-review obligations. The EU AI Act lists creditworthiness assessment of natural persons as a high-risk use case in Annex III. And DORA (Regulation 2022/2554, applicable since January 2025) pushes financial entities and their ICT providers toward demonstrable control over change management and incident reconstruction.</p>
+<p>None of these regulations prescribe a schema. All of them are easier to satisfy if any past decision can be reconstructed on demand.</p>
+<h2>What we see when lending teams hit this wall</h2>
+<p>In the fintech backends we have worked on or reviewed, the failure mode is consistent. Rules live in three places: code, a database table that ops edits, and a third-party decisioning tool. Nobody can say which version ran for a given application. Bureau and bank-data responses are fetched at decision time and discarded after the score is computed. When a regulator, an auditor or a funding partner asks for reconstruction, an engineer spends days piecing it together from application logs, and the answer is &ldquo;probably this.&rdquo;</p>
+<p>The second symptom shows up in engineering velocity. Teams become afraid to change rules because they cannot tell what a change would have done to historical applications. A rules change is shipped on a Friday with a prayer instead of a diff.</p>
+<p>Both symptoms have the same cause, and the fix is not exotic.</p>
+<h2>Make the evaluator pure, snapshot the inputs, version the rules</h2>
+<p>Three decisions give you replayability. None of them need a new platform. PostgreSQL and a disciplined module boundary are enough.</p>
+<p>First, the evaluator is a pure function. It takes a rule spec and an inputs object and returns an outcome with reason codes. No clock reads, no HTTP calls, no database access, no randomness. Everything the decision needs arrives as an argument.</p>
+<div class="codehilite"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">DecisionInputs</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">applicationId</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">evaluatedAt</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">          </span><span class="c1">// passed in, never Date.now()</span>
+<span class="w">  </span><span class="nx">applicant</span><span class="o">:</span><span class="w"> </span><span class="kt">ApplicantFacts</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">bureau</span><span class="o">:</span><span class="w"> </span><span class="kt">BureauSnapshot</span><span class="p">;</span><span class="w">       </span><span class="c1">// stored response, not a live call</span>
+<span class="w">  </span><span class="nx">bankData</span><span class="o">:</span><span class="w"> </span><span class="kt">BankDataSnapshot</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">evaluate</span><span class="p">(</span><span class="nx">spec</span><span class="o">:</span><span class="w"> </span><span class="kt">RuleSpec</span><span class="p">,</span><span class="w"> </span><span class="nx">inputs</span><span class="o">:</span><span class="w"> </span><span class="kt">DecisionInputs</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">Decision</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">reasons</span><span class="o">:</span><span class="w"> </span><span class="kt">ReasonCode</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[];</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">const</span><span class="w"> </span><span class="nx">rule</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="nx">spec</span><span class="p">.</span><span class="nx">rules</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">hit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">rule</span><span class="p">.</span><span class="nx">test</span><span class="p">(</span><span class="nx">inputs</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">hit</span><span class="p">)</span><span class="w"> </span><span class="nx">reasons</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">rule</span><span class="p">.</span><span class="nx">reason</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">outcome</span><span class="o">:</span><span class="w"> </span><span class="kt">reasons.some</span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">r</span><span class="p">.</span><span class="nx">blocking</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s1">&#39;declined&#39;</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;approved&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">reasons</span><span class="p">,</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>The side effects happen before the call. An orchestrating NestJS service fetches the bureau data and bank data, writes them to storage, then hands the snapshot to <code>evaluate</code>. The orchestration is messy and allowed to be. The evaluator is not.</p>
+<p>Second, rules are immutable, content-addressed versions. A rule change creates a new row. Nothing is edited in place.</p>
+<div class="codehilite"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">rule_versions</span><span class="w"> </span><span class="p">(</span>
+<span class="w">  </span><span class="n">id</span><span class="w">           </span><span class="n">uuid</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">gen_random_uuid</span><span class="p">(),</span>
+<span class="w">  </span><span class="n">name</span><span class="w">         </span><span class="nb">text</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="k">version</span><span class="w">      </span><span class="nb">int</span><span class="w">  </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="n">content_hash</span><span class="w"> </span><span class="nb">text</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span><span class="w">   </span><span class="c1">-- sha256 of the canonical spec</span>
+<span class="w">  </span><span class="n">spec</span><span class="w">         </span><span class="n">jsonb</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="n">created_by</span><span class="w">   </span><span class="nb">text</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="n">created_at</span><span class="w">   </span><span class="n">timestamptz</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">now</span><span class="p">(),</span>
+<span class="w">  </span><span class="k">UNIQUE</span><span class="w"> </span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="k">version</span><span class="p">)</span>
+<span class="p">);</span>
+
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">decisions</span><span class="w"> </span><span class="p">(</span>
+<span class="w">  </span><span class="n">id</span><span class="w">              </span><span class="n">uuid</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">gen_random_uuid</span><span class="p">(),</span>
+<span class="w">  </span><span class="n">application_id</span><span class="w">  </span><span class="n">uuid</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="n">rule_version_id</span><span class="w"> </span><span class="n">uuid</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">REFERENCES</span><span class="w"> </span><span class="n">rule_versions</span><span class="p">(</span><span class="n">id</span><span class="p">),</span>
+<span class="w">  </span><span class="n">inputs</span><span class="w">          </span><span class="n">jsonb</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span><span class="w">   </span><span class="c1">-- full snapshot, incl. bureau response</span>
+<span class="w">  </span><span class="n">outcome</span><span class="w">         </span><span class="nb">text</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="n">reasons</span><span class="w">         </span><span class="n">jsonb</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="n">decided_at</span><span class="w">      </span><span class="n">timestamptz</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">now</span><span class="p">()</span>
+<span class="p">);</span>
+
+<span class="k">REVOKE</span><span class="w"> </span><span class="k">UPDATE</span><span class="p">,</span><span class="w"> </span><span class="k">DELETE</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">decisions</span><span class="p">,</span><span class="w"> </span><span class="n">rule_versions</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">app_role</span><span class="p">;</span>
+</code></pre></div>
+
+<p>The <code>REVOKE</code> is the point. An audit trail the application can rewrite is a suggestion. Add a trigger that rejects updates for the roles that still hold the privilege, and keep the migration role separate from the runtime role.</p>
+<p>If rules must be code rather than data, the equivalent is a git SHA stored on every decision row, plus a build that refuses to deploy rule changes without it.</p>
+<p>Third, retention is a decision made explicitly. Storing full bureau responses indefinitely conflicts with GDPR storage limitation. Pick a retention window per data class with your DPO, encrypt the snapshot column, and delete on schedule. The decision row can keep its hash of the inputs after the payload expires, which proves integrity even when replay is no longer possible.</p>
+<h2>Replay turns rule changes from a gamble into a diff</h2>
+<p>Once decisions are replayable, you get something more useful than compliance: a test suite built from production history.</p>
+<p>Before a new rule version ships, run it against the last few thousand stored inputs and compare outcomes to what actually happened:</p>
+<div class="codehilite"><pre><span></span><code>$<span class="w"> </span>pnpm<span class="w"> </span>replay<span class="w"> </span>--candidate<span class="w"> </span>underwriting@v14<span class="w"> </span>--baseline<span class="w"> </span>underwriting@v13<span class="w"> </span>--last<span class="w"> </span><span class="m">5000</span>
+
+outcomes<span class="w"> </span>changed:<span class="w"> </span><span class="m">212</span><span class="w"> </span>/<span class="w"> </span><span class="m">5000</span><span class="w"> </span><span class="o">(</span><span class="m">4</span>.2%<span class="o">)</span>
+<span class="w">  </span>approved<span class="w"> </span>-&gt;<span class="w"> </span>declined:<span class="w"> </span><span class="m">31</span>
+<span class="w">  </span>declined<span class="w"> </span>-&gt;<span class="w"> </span>approved:<span class="w"> </span><span class="m">181</span>
+top<span class="w"> </span>reason<span class="w"> </span>codes<span class="w"> </span>driving<span class="w"> </span>change:<span class="w"> </span>CASHFLOW_VOLATILITY<span class="w"> </span><span class="o">(</span><span class="m">140</span><span class="o">)</span>,<span class="w"> </span>SECTOR_CAP<span class="w"> </span><span class="o">(</span><span class="m">52</span><span class="o">)</span>
+</code></pre></div>
+
+<p>A product manager can see that a &ldquo;small tweak&rdquo; would have flipped 181 declines, and decide whether that is the intent. Risk gets a number before release instead of a surprise after it. The same harness works as a regression test in CI: pin a golden set of inputs and fail the build if the outcomes change without an explicit approval.</p>
+<p>One caveat to state plainly. Replay reproduces the rules engine, not the world. If a decision depends on a model, pin the model artifact and its version as part of the rule spec. If it depends on an external call, the snapshot is the record and the live source is irrelevant.</p>
+<h2>Where a small team goes wrong</h2>
+<p>Retrofitting is cheap when the service already has a clean seam between data fetching and rules. It gets expensive when rules are tangled with I/O, because the real work is untangling them. Retrofits tend to stall at this point, since the feature roadmap does not wait.</p>
+<p>This is the kind of work where an embedded engineer with backend depth in PostgreSQL and TypeScript pays off. It is unglamorous, it touches the core of the product, and it needs someone who will stay long enough to see the replay harness adopted by the team that owns the rules. We hire engineers for that specific profile and embed them in the client&rsquo;s team, so the refactor is owned by someone who knows the codebase, not delivered as a document.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li>Store the inputs and the rule version with every decision. The outcome alone cannot be explained later.</li>
+<li>Keep the evaluator pure. Fetch external data first, snapshot it, then evaluate.</li>
+<li>Make rule versions immutable and revoke UPDATE and DELETE from the runtime database role.</li>
+<li>Decide retention per data class up front, so replayability does not collide with GDPR storage limitation.</li>
+<li>Use replay against historical inputs as the release gate for every rules change.</li>
+</ul>
+<hr />
+<p><em>SifrVentures builds dedicated engineering teams for tech companies. Based in Berlin.</em></p>
+<p><em>Draft created 2026-10-22 by the CTO agent. Pending partner review before publishing as a LinkedIn article.</em></p>
+                    
+                </div>
+                <div class="blog-post-footer">
+                    SifrVentures builds dedicated engineering teams for tech companies. Based in Berlin.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="footer-info">
+                            <img src="../images/footer-logo.png" alt="footer logo" width="238" height="72">
+                            <p>Empowering businesses through innovative remote tech talent solutions.</p>
+                            <h4>CONTACT US</h4>
+                            <p><a href="mailto:info@sifrventures.com">info@sifrventures.com</a></p>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 ps-0">
+                        <div class="row">
+                            <div class="col-6">
+                                <ul class="footer-menu">
+                                    <li><a href="index.html">Blog</a></li>
+                                    <li><a href="../index.html#contact">Contact</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-rights">
+                    <p>Copyright &copy; 2026 <a href="../index.html">Sifr Ventures</a> All rights reserved</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/bootstrap.bundle.min.js" defer></script>
+
+</body>
+</html>
