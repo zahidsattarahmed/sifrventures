@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Document-level accuracy hides the errors that cost money. Score fields, weight them by consequence, and gate every prompt change in CI.">
+    <title>Your Extraction Agent Is 94% Accurate and Still Ships Wrong Quantities | Sifr Ventures Blog</title>
+    <link rel="canonical" href="https://www.sifrventures.com/blog/eval-harness-llm-document-extraction.html">
+    <meta property="og:title" content="Your Extraction Agent Is 94% Accurate and Still Ships Wrong Quantities | Sifr Ventures">
+    <meta property="og:description" content="Document-level accuracy hides the errors that cost money. Score fields, weight them by consequence, and gate every prompt change in CI.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://www.sifrventures.com/blog/eval-harness-llm-document-extraction.html">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap">
+    <link href="../css/bootstrap.css" rel="stylesheet">
+    <link href="../css/styles.css" rel="stylesheet">
+    <link href="../css/blog.css" rel="stylesheet">
+    <link rel="icon" href="../images/favicon.png" type="image/x-icon">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Your Extraction Agent Is 94% Accurate and Still Ships Wrong Quantities",
+      "description": "Document-level accuracy hides the errors that cost money. Score fields, weight them by consequence, and gate every prompt change in CI.",
+      "image": "https://www.sifrventures.com/images/og-image.jpg",
+      "datePublished": "2026-11-05T00:00:00+01:00",
+      "author": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      }
+    }
+    </script>
+
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <div class="nav-inner">
+                <nav class="navbar navbar-expand-lg navbar-light">
+                    <a class="navbar-brand" href="../index.html"><img src="../images/logo.png" alt="Sifr Ventures" width="132" height="40"></a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="menu-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item"><a class="nav-link" href="index.html">Blog</a></li>
+                            <li class="nav-item"><a class="btn btn-primary btn-lg" href="../index.html#contact">Contact us</a></li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <section class="blog-post">
+        <div class="container">
+            <div class="blog-post-inner">
+                <a href="index.html" class="blog-back">&larr; All posts</a>
+                <div class="blog-post-header">
+                    <div class="blog-date">November 05, 2026</div>
+                    <h1>Your Extraction Agent Is 94% Accurate and Still Ships Wrong Quantities</h1>
+                    
+                </div>
+                <div class="blog-content">
+                    <p><em>Document-level accuracy hides the errors that cost money. Score fields, weight them by consequence, and gate every prompt change in CI.</em></p>
+<p>A team demos an agent that reads supplier quotes and customer RFQs and turns them into structured line items. The PDF-to-JSON accuracy is reported as 94%. Two weeks into the pilot, a customer receives a quote for 120 units that should have been 12. The description field was perfect. The quantity was off by a digit, and no dashboard showed it, because the metric averaged everything together.</p>
+<p>This is the most common gap we see in LLM extraction projects: the model is good enough, and the measurement is not. If you cannot say how often the quantity field is wrong on scanned PDFs from your top five suppliers, you do not know whether the system works.</p>
+<h2>Averaged accuracy rewards the wrong behavior</h2>
+<p>Extraction outputs have fields of very different weight. A mangled product description gets noticed by a human in seconds. A wrong unit (m2 versus m3, piece versus pack of ten) or a shifted decimal in a quantity flows straight into a quote, an order, or an ERP posting.</p>
+<p>A single accuracy number blends these together. Say a document has 8 fields per line, and the model nails 7 of them on every line. You report 87.5% field accuracy, and the one wrong field per line is the quantity. The number looks fine. The system is useless.</p>
+<p>Document format makes it worse. Native PDFs, scanned faxes, Excel sheets with merged cells and hand-edited emails behave like different models. An aggregate over all of them tells you nothing about the scans, which is where the failures cluster. In the past month, at least four DACH-funded startups announced agents for legacy-heavy workflows: procurement, B2B trade, travel and building materials (per our market tracking, sourced from Tech.eu weekly recaps). Their domains differ and the documents are messy in the same way.</p>
+<h2>What we run on our own pipeline</h2>
+<p>Our internal sales pipeline uses LLM agents to research companies, score leads and draft outreach. None of that output is trusted on its own. Each agent run is checked against acceptance criteria: required fields present, a justification attached to every score dimension, a source URL on every claim. Before any first email leaves, a person approves it. The model drafts; deterministic code and a human decide what ships.</p>
+<p>That setup is small, and it taught us the lesson that applies to client work: validation and review catch more than prompt tweaking does. When a field fails a check, the cheapest fix is almost never a longer prompt. It is a rule, a lookup table or a review step.</p>
+<h2>Build the eval harness before the second prompt revision</h2>
+<p>The harness is not complicated, and it should exist before anyone rewrites the prompt for the first time. We build these with the client&rsquo;s domain expert, because only they can label the gold set correctly.</p>
+<p>Start with a gold set of 50 to 100 real documents, stratified by source: native PDF, scan, spreadsheet, email body. A domain expert labels every line item. Fifty documents with 20 lines each is already 1,000 labeled lines, enough to see patterns. Synthetic documents are not a substitute, because the failures come from real-world mess.</p>
+<p>Score each field with its own match rule. Use exact match on article numbers and quantities, canonicalized match on units, fuzzy match on descriptions. Lines must be aligned first, by article number where it exists and by position otherwise. Alignment bugs in the harness produce phantom regressions, so test the aligner on its own.</p>
+<div class="codehilite"><pre><span></span><code><span class="kr">type</span><span class="w"> </span><span class="nx">Field</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;article_no&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;quantity&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;unit&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;description&#39;</span><span class="p">;</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">CRITICAL</span><span class="o">:</span><span class="w"> </span><span class="kt">Field</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;article_no&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;quantity&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;unit&#39;</span><span class="p">];</span>
+
+<span class="kd">function</span><span class="w"> </span><span class="nx">scoreLine</span><span class="p">(</span><span class="nx">pred</span><span class="o">:</span><span class="w"> </span><span class="kt">Line</span><span class="p">,</span><span class="w"> </span><span class="nx">gold</span><span class="o">:</span><span class="w"> </span><span class="kt">Line</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">Record</span><span class="o">&lt;</span><span class="nx">Field</span><span class="p">,</span><span class="w"> </span><span class="kt">boolean</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">article_no</span><span class="o">:</span><span class="w"> </span><span class="kt">norm</span><span class="p">(</span><span class="nx">pred</span><span class="p">.</span><span class="nx">article_no</span><span class="p">)</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="nx">norm</span><span class="p">(</span><span class="nx">gold</span><span class="p">.</span><span class="nx">article_no</span><span class="p">),</span>
+<span class="w">    </span><span class="nx">quantity</span><span class="o">:</span><span class="w">   </span><span class="kt">pred.quantity</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="nx">gold</span><span class="p">.</span><span class="nx">quantity</span><span class="p">,</span><span class="w">            </span><span class="c1">// Decimal, never float</span>
+<span class="w">    </span><span class="nx">unit</span><span class="o">:</span><span class="w">       </span><span class="kt">canonicalUnit</span><span class="p">(</span><span class="nx">pred</span><span class="p">.</span><span class="nx">unit</span><span class="p">)</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="nx">canonicalUnit</span><span class="p">(</span><span class="nx">gold</span><span class="p">.</span><span class="nx">unit</span><span class="p">),</span>
+<span class="w">    </span><span class="nx">description</span><span class="o">:</span><span class="w"> </span><span class="kt">similarity</span><span class="p">(</span><span class="nx">pred</span><span class="p">.</span><span class="nx">description</span><span class="p">,</span><span class="w"> </span><span class="nx">gold</span><span class="p">.</span><span class="nx">description</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mf">0.85</span><span class="p">,</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="p">}</span>
+
+<span class="c1">// CI gate: fail the build if any critical field regresses on any stratum</span>
+<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">const</span><span class="w"> </span><span class="nx">stratum</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="nx">strata</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">const</span><span class="w"> </span><span class="nx">f</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="nx">CRITICAL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">recall</span><span class="p">(</span><span class="nx">results</span><span class="p">,</span><span class="w"> </span><span class="nx">stratum</span><span class="p">,</span><span class="w"> </span><span class="nx">f</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="nx">baseline</span><span class="p">[</span><span class="nx">stratum</span><span class="p">][</span><span class="nx">f</span><span class="p">]</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">0.01</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nx">console</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="sb">`regression: </span><span class="si">${</span><span class="nx">stratum</span><span class="si">}</span><span class="sb">/</span><span class="si">${</span><span class="nx">f</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
+<span class="w">      </span><span class="nx">process</span><span class="p">.</span><span class="nx">exit</span><span class="p">(</span><span class="mf">1</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Run the gate on each document type separately. A prompt change that lifts native PDFs by two points and drops scans by six should fail, and an average would let it through.</p>
+<p>Pin model versions and record every result. Store each eval run with the prompt hash, model identifier and per-field numbers. When a provider updates a model behind an alias, you will see the shift in the next scheduled run instead of in a customer complaint. Treat prompts as versioned artifacts with the same discipline as code; we wrote about that separately in our post on prompt versioning.</p>
+<h2>Route to humans with deterministic checks, not model confidence</h2>
+<p>Self-reported confidence from an LLM is poorly calibrated. A model can return 0.97 on a field it got wrong. Use signals you can verify instead:</p>
+<ul>
+<li>Schema validation with a strict parser (Zod in TypeScript, Pydantic in Python). Reject, do not coerce, anything outside the enum of known units.</li>
+<li>Cross-field arithmetic. If quantity times unit price does not equal the line total within rounding, flag the line.</li>
+<li>Two-pass disagreement. Extract twice with different prompts or models and compare critical fields. Disagreement goes to review. This roughly doubles token cost on the extraction step, so apply it to critical fields only if cost matters.</li>
+<li>Plausibility against history. A quantity of 120 where the same customer has ordered 10 to 15 for two years deserves a second look.</li>
+</ul>
+<p>Flagged lines go into a review queue in Postgres with the document image next to the extracted values. Every correction a reviewer makes is stored and, after a spot check, promoted into the gold set. After a few months the gold set reflects your real traffic, and the harness gets sharper without extra labeling projects.</p>
+<h2>Staffing this</h2>
+<p>The work splits into three parts: the extraction service (Python or Node.js), the eval and review tooling (TypeScript for the reviewer UI, Postgres underneath), and the labeling process with a domain expert. The first two are ordinary backend engineering. Teams with strong domain knowledge and few backend engineers often skip the harness because it looks like overhead, then spend the pilot debugging by anecdote. A backend engineer who has built one before can stand up a first version quickly, and that costs far less than one wrong quote reaching a customer.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li>Report accuracy per field and per document type. A blended number hides the failures that matter.</li>
+<li>Weight fields by consequence. Quantities, units and identifiers get exact-match rules and a CI gate; descriptions get fuzzy matching.</li>
+<li>Gate every prompt, model and parser change against a gold set of 50 to 100 real documents, and pin model versions.</li>
+<li>Route to human review using schema checks, arithmetic and cross-pass disagreement. Do not rely on the model&rsquo;s own confidence.</li>
+<li>Feed reviewer corrections back into the gold set so the harness reflects real traffic.</li>
+</ul>
+                    
+                </div>
+                <div class="blog-post-footer">
+                    SifrVentures builds dedicated engineering teams for tech companies. Based in Berlin.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="footer-info">
+                            <img src="../images/footer-logo.png" alt="footer logo" width="238" height="72">
+                            <p>Empowering businesses through innovative remote tech talent solutions.</p>
+                            <h4>CONTACT US</h4>
+                            <p><a href="mailto:info@sifrventures.com">info@sifrventures.com</a></p>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 ps-0">
+                        <div class="row">
+                            <div class="col-6">
+                                <ul class="footer-menu">
+                                    <li><a href="index.html">Blog</a></li>
+                                    <li><a href="../index.html#contact">Contact</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-rights">
+                    <p>Copyright &copy; 2026 <a href="../index.html">Sifr Ventures</a> All rights reserved</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/bootstrap.bundle.min.js" defer></script>
+
+</body>
+</html>
