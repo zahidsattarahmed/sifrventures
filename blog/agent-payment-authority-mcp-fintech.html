@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Exposing payment endpoints through MCP takes a week. Deciding what an agent is allowed to do with them takes the real engineering.">
+    <title>Giving an AI Agent Your Payments API Is an Authorization Problem, Not an Integration Problem | Sifr Ventures Blog</title>
+    <link rel="canonical" href="https://www.sifrventures.com/blog/agent-payment-authority-mcp-fintech.html">
+    <meta property="og:title" content="Giving an AI Agent Your Payments API Is an Authorization Problem, Not an Integration Problem | Sifr Ventures">
+    <meta property="og:description" content="Exposing payment endpoints through MCP takes a week. Deciding what an agent is allowed to do with them takes the real engineering.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://www.sifrventures.com/blog/agent-payment-authority-mcp-fintech.html">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap">
+    <link href="../css/bootstrap.css" rel="stylesheet">
+    <link href="../css/styles.css" rel="stylesheet">
+    <link href="../css/blog.css" rel="stylesheet">
+    <link rel="icon" href="../images/favicon.png" type="image/x-icon">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Giving an AI Agent Your Payments API Is an Authorization Problem, Not an Integration Problem",
+      "description": "Exposing payment endpoints through MCP takes a week. Deciding what an agent is allowed to do with them takes the real engineering.",
+      "image": "https://www.sifrventures.com/images/og-image.jpg",
+      "datePublished": "2026-11-12T00:00:00+01:00",
+      "author": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      }
+    }
+    </script>
+
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <div class="nav-inner">
+                <nav class="navbar navbar-expand-lg navbar-light">
+                    <a class="navbar-brand" href="../index.html"><img src="../images/logo.png" alt="Sifr Ventures" width="132" height="40"></a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="menu-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item"><a class="nav-link" href="index.html">Blog</a></li>
+                            <li class="nav-item"><a class="btn btn-primary btn-lg" href="../index.html#contact">Contact us</a></li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <section class="blog-post">
+        <div class="container">
+            <div class="blog-post-inner">
+                <a href="index.html" class="blog-back">&larr; All posts</a>
+                <div class="blog-post-header">
+                    <div class="blog-date">November 12, 2026</div>
+                    <h1>Giving an AI Agent Your Payments API Is an Authorization Problem, Not an Integration Problem</h1>
+                    
+                </div>
+                <div class="blog-content">
+                    <p><em>Exposing payment endpoints through MCP takes a week. Deciding what an agent is allowed to do with them takes the real engineering.</em></p>
+<p><strong>Created:</strong> 2026-11-12 | <strong>Status:</strong> Draft, pending partner review | <strong>Vertical:</strong> Fintech / B2B payments (CMO intel 2026-11-12)</p>
+<p>A fintech with a clean REST API can wrap it in an MCP server in a few days. The tool list looks right, the demo works, and a customer&rsquo;s agent pays an invoice on the first try. Then the security review asks one question: when the agent calls <code>create_payment</code>, whose authority is it using, and what stops it from paying the wrong supplier twice?</p>
+<p>Most teams discover they have no answer. Their API was built for a human behind a session or a backend service with an API key. Neither model describes software that acts on behalf of a user, makes its own decisions about what to call, and retries when it gets confused.</p>
+<h2>Your existing API key model grants too much and records too little</h2>
+<p>A typical B2B payments API authenticates a company with a long-lived key and authorizes by role. Admin can create payments, read-only cannot. That works when the caller is a deterministic ERP integration that does the same thing every night.</p>
+<p>An agent breaks three assumptions at once. It is non-deterministic, so the same invoice may produce different call sequences on different days. It is driven by untrusted input, because the invoice PDF it reads may contain text that tries to steer it. And it acts for a human who never saw the specific payment, so the audit trail &ldquo;key X called endpoint Y&rdquo; is useless to a compliance officer asking who approved this.</p>
+<p>In the EU the regulatory context makes this concrete. PSD2&rsquo;s strong customer authentication rules require that the authentication code be dynamically linked to the amount and the payee (Commission Delegated Regulation 2018/389, Article 5). DORA has applied to financial entities since January 2025 and puts ICT third-party risk and incident traceability on the regulated firm, which includes the vendors it wires into its payment flow. &ldquo;The agent decided&rdquo; will not survive either regime.</p>
+<h2>What we see when teams ship the wrapper first</h2>
+<p>The pattern is consistent across fintech and payments-adjacent SaaS. The first version maps every endpoint to a tool, reuses the customer&rsquo;s existing API key, and relies on the model to behave. It passes demos. It fails in review, or worse, in the first week of production use, because there is no place in the system where &ldquo;this payment needs a human&rdquo; can be expressed.</p>
+<p>The fix is rarely a rewrite. It is a new layer between the agent-facing tool surface and the payment core, and it touches identity, policy, and the audit log. That is three areas, usually owned by three different people, which is why it stalls. The identity work sits with platform. The policy work sits with whoever owns risk. The audit work sits with whoever answers to the regulator. Nobody owns the seam, and the backend team that would build it is already committed to the roadmap.</p>
+<h2>Treat the agent as a delegated principal with its own narrow credential</h2>
+<p>We recommend four pieces, built in this order.</p>
+<p>First, issue a separate credential per delegation, not per customer. Do not hand the agent the customer&rsquo;s API key. Issue a short-lived token that records the human principal, the agent identity, and a scope. MCP&rsquo;s HTTP transport already defines an OAuth 2.1 based authorization flow, so use it rather than inventing a header. For scoped, structured permissions, OAuth Rich Authorization Requests (RFC 9396) let you carry fields such as maximum amount and permitted payees inside the token itself.</p>
+<p>Second, evaluate policy server-side on every write, outside the model. The MCP server must not trust the agent to respect limits it was told in a prompt. Put the check in code the model cannot reach:</p>
+<div class="codehilite"><pre><span></span><code><span class="kr">type</span><span class="w"> </span><span class="nx">Delegation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">principalId</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">agentId</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">maxAmountMinor</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w">       </span><span class="c1">// per payment, in cents</span>
+<span class="w">  </span><span class="nx">dailyCapMinor</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">allowedPayeeIds</span><span class="o">:</span><span class="w"> </span><span class="kt">Set</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span><span class="w"> </span><span class="c1">// pre-approved suppliers only</span>
+<span class="w">  </span><span class="nx">expiresAt</span><span class="o">:</span><span class="w"> </span><span class="kt">Date</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">async</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">authorize</span><span class="p">(</span><span class="nx">d</span><span class="o">:</span><span class="w"> </span><span class="kt">Delegation</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="o">:</span><span class="w"> </span><span class="kt">PaymentIntent</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nb">Promise</span><span class="o">&lt;</span><span class="nx">Decision</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">expiresAt</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nb">Date</span><span class="p">())</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">deny</span><span class="p">(</span><span class="s1">&#39;delegation_expired&#39;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">d</span><span class="p">.</span><span class="nx">allowedPayeeIds</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="nx">p</span><span class="p">.</span><span class="nx">payeeId</span><span class="p">))</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">requireApproval</span><span class="p">(</span><span class="s1">&#39;new_payee&#39;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">p</span><span class="p">.</span><span class="nx">amountMinor</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="nx">d</span><span class="p">.</span><span class="nx">maxAmountMinor</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">requireApproval</span><span class="p">(</span><span class="s1">&#39;over_limit&#39;</span><span class="p">);</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">spent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">ledger</span><span class="p">.</span><span class="nx">spentToday</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">principalId</span><span class="p">,</span><span class="w"> </span><span class="nx">d</span><span class="p">.</span><span class="nx">agentId</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">spent</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">amountMinor</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="nx">d</span><span class="p">.</span><span class="nx">dailyCapMinor</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">requireApproval</span><span class="p">(</span><span class="s1">&#39;daily_cap&#39;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">allow</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Note the third outcome. Most decisions should not be allow or deny. They should be <code>requireApproval</code>, which parks the intent and sends a human a request showing the exact amount and payee. That approval, not the agent&rsquo;s call, is what you link to the payment for SCA purposes.</p>
+<p>Third, key idempotency on intent, not on request. Agents retry, and they often retry with slightly different parameters. If your idempotency key is a client-supplied header, two retries with different keys create two payments. Derive the key from the business intent instead, for example a hash of principal, payee, invoice reference, and amount. A second attempt for the same invoice then collapses into the first, whatever the agent does.</p>
+<p>Fourth, keep an append-only record that links request, policy decision, approval, and payment. Store the tool call, the delegation it ran under, the policy result with the rule that fired, the approver if any, and the resulting payment ID in one correlated trail. In Postgres this can be a plain insert-only table with a revoked UPDATE and DELETE grant for the application role. When an auditor asks why a payment happened, you answer with one query.</p>
+<h2>The real cost is ownership, and it is a team-shape problem</h2>
+<p>Each of these pieces is a few weeks of work for an experienced backend engineer. Together they touch the API gateway, the auth service, the payment core, and the audit store. In a Java/Kotlin and Spring Boot estate with Kafka between services, which is common for growth-stage payments companies, that means changes in four codebases with four sets of reviewers.</p>
+<p>Teams that handle this well do not pull the core payments squad off their roadmap. They stand up a small group with one explicit mandate, the agent authorization layer, staffed with backend engineers who already know the stack and one person with identity experience. That group owns the seam. The core team reviews, but does not build.</p>
+<p>This is the staffing shape we help clients create. Our first client started with one engineer and grew into a complete cross-functional team the same way: one scoped mandate, one person who knew the stack, then more people as the surface area became clear. We hire for the specific stack, whether that is Spring Boot and Kafka or TypeScript on Node, and embed the engineers in the client&rsquo;s repos and review process from the first week.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li>An MCP wrapper over an existing payments API inherits human or service-account assumptions that do not hold for agents. Issue per-delegation, short-lived credentials with explicit scope.</li>
+<li>Enforce limits in server-side policy code, never in the prompt. Make <code>requireApproval</code> the default outcome for anything outside pre-approved payees and amounts.</li>
+<li>Derive idempotency keys from business intent so agent retries cannot create duplicate payments.</li>
+<li>Keep one correlated, insert-only trail from tool call to policy decision to approval to payment. It is what DORA and PSD2 reviews will ask for.</li>
+<li>Assign the authorization seam to a dedicated group rather than spreading it across platform, risk, and core payments.</li>
+</ul>
+                    
+                </div>
+                <div class="blog-post-footer">
+                    SifrVentures builds dedicated engineering teams for tech companies. Based in Berlin.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="footer-info">
+                            <img src="../images/footer-logo.png" alt="footer logo" width="238" height="72">
+                            <p>Empowering businesses through innovative remote tech talent solutions.</p>
+                            <h4>CONTACT US</h4>
+                            <p><a href="mailto:info@sifrventures.com">info@sifrventures.com</a></p>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 ps-0">
+                        <div class="row">
+                            <div class="col-6">
+                                <ul class="footer-menu">
+                                    <li><a href="index.html">Blog</a></li>
+                                    <li><a href="../index.html#contact">Contact</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-rights">
+                    <p>Copyright &copy; 2026 <a href="../index.html">Sifr Ventures</a> All rights reserved</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/bootstrap.bundle.min.js" defer></script>
+
+</body>
+</html>
