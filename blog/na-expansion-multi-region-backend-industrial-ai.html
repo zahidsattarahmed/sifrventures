@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Three engineering decisions that determine whether a European SaaS company can sell to US customers in two quarters or in six.">
+    <title>Your Series B Is Earmarked for North America. Your Single-Region Backend Is Not Ready. | Sifr Ventures Blog</title>
+    <link rel="canonical" href="https://www.sifrventures.com/blog/na-expansion-multi-region-backend-industrial-ai.html">
+    <meta property="og:title" content="Your Series B Is Earmarked for North America. Your Single-Region Backend Is Not Ready. | Sifr Ventures">
+    <meta property="og:description" content="Three engineering decisions that determine whether a European SaaS company can sell to US customers in two quarters or in six.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://www.sifrventures.com/blog/na-expansion-multi-region-backend-industrial-ai.html">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap">
+    <link href="../css/bootstrap.css" rel="stylesheet">
+    <link href="../css/styles.css" rel="stylesheet">
+    <link href="../css/blog.css" rel="stylesheet">
+    <link rel="icon" href="../images/favicon.png" type="image/x-icon">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Your Series B Is Earmarked for North America. Your Single-Region Backend Is Not Ready.",
+      "description": "Three engineering decisions that determine whether a European SaaS company can sell to US customers in two quarters or in six.",
+      "image": "https://www.sifrventures.com/images/og-image.jpg",
+      "datePublished": "2026-11-19T00:00:00+01:00",
+      "author": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Sifr Ventures",
+        "url": "https://www.sifrventures.com"
+      }
+    }
+    </script>
+
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <div class="nav-inner">
+                <nav class="navbar navbar-expand-lg navbar-light">
+                    <a class="navbar-brand" href="../index.html"><img src="../images/logo.png" alt="Sifr Ventures" width="132" height="40"></a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="menu-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item"><a class="nav-link" href="index.html">Blog</a></li>
+                            <li class="nav-item"><a class="btn btn-primary btn-lg" href="../index.html#contact">Contact us</a></li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <section class="blog-post">
+        <div class="container">
+            <div class="blog-post-inner">
+                <a href="index.html" class="blog-back">&larr; All posts</a>
+                <div class="blog-post-header">
+                    <div class="blog-date">November 19, 2026</div>
+                    <h1>Your Series B Is Earmarked for North America. Your Single-Region Backend Is Not Ready.</h1>
+                    
+                </div>
+                <div class="blog-content">
+                    <p><em>Three engineering decisions that determine whether a European SaaS company can sell to US customers in two quarters or in six.</em></p>
+<p>Look at this month&rsquo;s European funding recaps and a pattern shows up. Industrial AI and supply-chain software companies keep raising growth rounds, and the use of funds line keeps saying &ldquo;North American expansion.&rdquo; The sales plan is clear. The engineering plan usually is not, and the first US enterprise security questionnaire is where that gets exposed.</p>
+<p>The questionnaire asks where customer data is stored, which engineers can access it, and whether you can show a SOC 2 report. A backend built as one deployment in <code>eu-central-1</code> has no good answer to the first question for a US customer, and a slow answer to the other two.</p>
+<h2>The funding announcement does not include the backend work</h2>
+<p>A single-region deployment is the right call at seed and Series A. One Postgres cluster, one Kubernetes cluster, one Terraform state. Nobody should build multi-region early.</p>
+<p>The trouble starts when the second region becomes a revenue requirement. Three things break at once.</p>
+<p>The first is latency. A round trip between Frankfurt and the US East Coast is roughly 90 ms before your application does any work. An ML-backed UI that makes six sequential API calls to render a dashboard turns that into half a second of pure network time. Industrial users on a plant floor in Ohio will notice.</p>
+<p>The second problem is data location. US manufacturers often want their operational data to stay in the US, in the same way European customers want it to stay in the EU. For personal data, GDPR governs transfers out of the EU, and the EU-US Data Privacy Framework covers certified US recipients. For industrial data that is not personal, there is no statute, but there is a contract clause, and your largest prospect will ask for it.</p>
+<p>The third is audit scope. SOC 2 Type II reports cover an observation period, commonly three to twelve months. If you decide to pursue one when the first US deal is in procurement, the report will not exist until well after the deal closes. The controls (access reviews, change management, logging) need to be running from the start of the window.</p>
+<h2>What we&rsquo;ve seen when teams retrofit</h2>
+<p>The failure pattern is consistent across the fast-growing B2B SaaS companies we talk to. The team clones the production stack into a second region by copy-pasting Terraform, then discovers the application assumes a single database everywhere.</p>
+<p>Cross-tenant queries live in the admin panel. A background job joins customer tables with a shared reference table. Feature flags are read from a table in the one Postgres instance. Each of these is a small fix in isolation. Together they are a quarter of work for the people who also own the roadmap, which is the quarter the company promised US revenue.</p>
+<p>The teams that move quickly treat this as a bounded platform project with its own owners. It needs infrastructure and backend skills, mostly Terraform, Kubernetes, PostgreSQL and a Node.js or Python service layer. In our model, those are roles we hire for and embed in 3 to 4 weeks, so the project does not have to compete with product work for the same five people.</p>
+<h2>Build cells, not a global cluster</h2>
+<p>Our recommendation is a cell architecture. Each region runs a complete, independent copy of the data plane. A thin global control plane knows which tenant lives in which cell, and nothing else.</p>
+<div class="codehilite"><pre><span></span><code>            Global control plane
+        (tenant directory, auth, billing)
+                 |           |
+        +--------+           +--------+
+        |                             |
+  Cell eu-1 (eu-central-1)     Cell us-1 (us-east-1)
+  API + workers                API + workers
+  Postgres (tenant data)       Postgres (tenant data)
+  Model serving                Model serving
+  Object storage               Object storage
+</code></pre></div>
+
+<p>This is deliberately boring. We prefer it to active-active global databases such as Aurora Global Database or CockroachDB multi-region for this use case, because customers who want data residency do not want their rows replicated elsewhere, and a global write path adds failure modes that a growing engineering team should not own.</p>
+<h3>Decision 1: Make the region a parameter in Terraform from day one</h3>
+<p>The cheapest step is to make the stack instantiable per region. Wrap everything in a module, and pass the provider in.</p>
+<div class="codehilite"><pre><span></span><code><span class="n">provider</span><span class="w"> </span><span class="s">&quot;aws&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">alias</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;eu&quot;</span>
+<span class="w">  </span><span class="n">region</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;eu-central-1&quot;</span>
+<span class="p">}</span>
+
+<span class="n">provider</span><span class="w"> </span><span class="s">&quot;aws&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">alias</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;us&quot;</span>
+<span class="w">  </span><span class="n">region</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;us-east-1&quot;</span>
+<span class="p">}</span>
+
+<span class="k">module</span><span class="w"> </span><span class="s">&quot;cell_eu&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">source</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;./modules/cell&quot;</span>
+<span class="w">  </span><span class="n">providers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">aws</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">aws</span><span class="p">.</span><span class="n">eu</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="n">cell_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;eu-1&quot;</span>
+<span class="p">}</span>
+
+<span class="k">module</span><span class="w"> </span><span class="s">&quot;cell_us&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">source</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;./modules/cell&quot;</span>
+<span class="w">  </span><span class="n">providers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">aws</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">aws</span><span class="p">.</span><span class="n">us</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="n">cell_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;us-1&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Keep a separate remote state per cell. A bad <code>terraform apply</code> in the US cell should not be able to lock or corrupt the EU state, and your blast radius stays at one region.</p>
+<h3>Decision 2: Route by tenant, resolved in one place</h3>
+<p>Every request needs a tenant ID, usually as a claim in the JWT. The control plane maps that ID to a cell. In a NestJS gateway this is a small service.</p>
+<div class="codehilite"><pre><span></span><code><span class="kd">@Injectable</span><span class="p">()</span>
+<span class="k">export</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nx">CellRouter</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kr">constructor</span><span class="p">(</span><span class="k">private</span><span class="w"> </span><span class="k">readonly</span><span class="w"> </span><span class="nx">directory</span><span class="o">:</span><span class="w"> </span><span class="kt">TenantDirectory</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="k">async</span><span class="w"> </span><span class="nx">resolve</span><span class="p">(</span><span class="nx">tenantId</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nb">Promise</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">cell</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">directory</span><span class="p">.</span><span class="nx">cellFor</span><span class="p">(</span><span class="nx">tenantId</span><span class="p">);</span><span class="w"> </span><span class="c1">// &quot;eu-1&quot; | &quot;us-1&quot;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">cell</span><span class="p">)</span><span class="w"> </span><span class="k">throw</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">NotFoundException</span><span class="p">(</span><span class="s1">&#39;unknown tenant&#39;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="sb">`https://</span><span class="si">${</span><span class="nx">cell</span><span class="si">}</span><span class="sb">.api.internal.example.com`</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>The directory is a tiny table: tenant ID, cell, created at. It is the only global data store, it holds no customer content, and it is cached aggressively. Once a tenant is pinned to a cell, moving it is an explicit migration, not an accident of load balancing.</p>
+<h3>Decision 3: Promote models and images by digest, per cell</h3>
+<p>If you serve ML models, the artifact needs the same discipline as code. Deploy container images by digest (<code>image@sha256:...</code>), not by tag, and promote the same digest through eu-1 and then us-1. Store the model version in the deployment config, so you can answer &ldquo;which model produced this forecast&rdquo; for a given tenant at a given date.</p>
+<p>Without this, two regions slowly drift. The EU cell runs a model retrained last week, the US cell runs the previous one, and a customer support ticket turns into a two-day investigation.</p>
+<h2>What to do before the first US deal</h2>
+<p>Pull the cross-tenant queries out first. Grep the codebase for joins that span tenant tables and for anything in an admin tool that reads all tenants at once. Those are the queries that cannot survive cells.</p>
+<p>Start collecting SOC 2 evidence early, even if the audit is later. Access reviews, pull request approvals and infrastructure change logs are cheap to produce if they are automated in GitHub and Terraform from the start, and expensive to reconstruct.</p>
+<p>Run a game day. Take the US cell down in staging and confirm the EU cell is unaffected. If it is not, you have found your hidden global dependency before a customer did.</p>
+<h2>Key Takeaways</h2>
+<ul>
+<li>Single-region is correct early. The mistake is leaving the application coupled to it after a US-facing round is announced.</li>
+<li>Cells with a thin global tenant directory give you data residency without a global database, and they keep the failure domain to one region.</li>
+<li>Make region a Terraform module parameter, deploy by image digest, and pin each tenant to a cell. All three are cheap before the second region and painful after.</li>
+<li>Cross-tenant queries and shared reference tables are the real work. Find them before you promise a date.</li>
+<li>SOC 2 Type II is a time window. Controls that start late push your first report out by the same amount.</li>
+</ul>
+                    
+                </div>
+                <div class="blog-post-footer">
+                    SifrVentures builds dedicated engineering teams for tech companies. Based in Berlin.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="footer-info">
+                            <img src="../images/footer-logo.png" alt="footer logo" width="238" height="72">
+                            <p>Empowering businesses through innovative remote tech talent solutions.</p>
+                            <h4>CONTACT US</h4>
+                            <p><a href="mailto:info@sifrventures.com">info@sifrventures.com</a></p>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 ps-0">
+                        <div class="row">
+                            <div class="col-6">
+                                <ul class="footer-menu">
+                                    <li><a href="index.html">Blog</a></li>
+                                    <li><a href="../index.html#contact">Contact</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-rights">
+                    <p>Copyright &copy; 2026 <a href="../index.html">Sifr Ventures</a> All rights reserved</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/bootstrap.bundle.min.js" defer></script>
+
+</body>
+</html>
